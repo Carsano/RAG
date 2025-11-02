@@ -107,10 +107,10 @@ class Indexer:
 
         api_key = os.environ.get("MISTRAL_API_KEY")
         if not api_key:
-            raise RuntimeError("MISTRAL_API_KEY manquant dans l'environnement")
+            raise RuntimeError("MISTRAL_API_KEY missing from environment")
         self.client = Mistral(api_key=api_key)
 
-        # Etat en mémoire
+        # In-memory state
         self.valid_chunks: List[str] = []
         self.embeddings_list: List[List[float]] = []
         self.index: Optional[faiss.Index] = None
@@ -130,7 +130,6 @@ class Indexer:
         files = self._list_md_files(self.root)
         all_chunks = self._chunk_markdown_files(files)
 
-        # Reprise si tmp présents
         if self.tmp_chunks_path.exists():
             with open(self.tmp_chunks_path, "rb") as f:
                 self.valid_chunks = pickle.load(f)
@@ -139,7 +138,7 @@ class Indexer:
 
         start_idx = len(self.valid_chunks)
         for i, chunk in enumerate(all_chunks[start_idx:], start=start_idx):
-            self.logger.info(f"[{i}] Embedding en cours…")
+            self.logger.info(f"[{i}] Embedding in progress...")
             emb = self._embed_text(chunk)
             self.logger.info(f"[{i}] Embedding status: {emb is not None}")
             if emb is None:
@@ -149,7 +148,7 @@ class Indexer:
             self.embeddings_list.append(emb)
             self.valid_chunks.append(chunk)
 
-            # Sauvegardes intermédiaires
+            # Intermediate saves
             with open(self.tmp_chunks_path, "wb") as f:
                 pickle.dump(self.valid_chunks, f)
             np.save(
@@ -157,14 +156,14 @@ class Indexer:
                 np.array(self.embeddings_list, dtype="float32"),
             )
             self.logger.info(
-                f"[{i}] Sauvegarde faite : {len(self.valid_chunks)} chunks, "
+                f"[{i}] Save done: {len(self.valid_chunks)} chunks, "
                 f"{len(self.embeddings_list)} embeddings"
             )
             time.sleep(self.sleep_between_calls)
 
-        # Finalisation FAISS
+        # FAISS finalization
         if not self.embeddings_list:
-            self.logger.warning("Aucun embedding généré. Rien à indexer.")
+            self.logger.warning("No embeddings generated. Nothing to index.")
             return
 
         embeddings = np.array(self.embeddings_list, dtype="float32")
@@ -172,14 +171,14 @@ class Indexer:
         self.index = faiss.IndexFlatL2(dimension)
         self.index.add(embeddings)
 
-        # Exports finaux
+        # Final exports
         with open(self.chunks_pkl_path, "wb") as f:
             pickle.dump(self.valid_chunks, f)
         with open(self.chunks_json_path, "w", encoding="utf-8") as f:
             json.dump(self.valid_chunks, f, ensure_ascii=False, indent=2)
         faiss.write_index(self.index, str(self.index_path))
         self.logger.info(
-            f"Index écrit: {self.index_path} | "
+            f"Index written: {self.index_path} | "
             f"Chunks: {self.chunks_json_path} / {self.chunks_pkl_path}"
         )
 
@@ -229,7 +228,7 @@ class Indexer:
                                                   inputs=text)
             return batch.data[0].embedding
         except Exception as e:
-            self.logger.error(f"API error: {e}. Waiting 60s before retry…")
+            self.logger.error(f"API error: {e}. Waiting 60s before retry...")
             time.sleep(60)
             try:
                 batch = self.client.embeddings.create(model=self.model,
