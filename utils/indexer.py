@@ -7,7 +7,6 @@ retrieval.
 """
 from __future__ import annotations
 
-import os
 import time
 import json
 import pickle
@@ -16,9 +15,8 @@ from typing import List, Optional
 
 import numpy as np
 import faiss
-from dotenv import load_dotenv
-from mistralai import Mistral
 from langchain_text_splitters import MarkdownTextSplitter
+from utils.embedders import Embedder, MistralEmbedder
 from utils.logger import Logger
 
 
@@ -41,7 +39,7 @@ class Indexer:
         index_path (pathlib.Path): Output FAISS index path.
         chunks_json_path (pathlib.Path): Output JSON chunks path.
         chunks_pkl_path (pathlib.Path): Output pickle chunks path.
-        client (Mistral): Mistral client instance.
+        embedder (Embedder): Embedding backend.
         valid_chunks (List[str]): Chunks that were embedded.
         embeddings_list (List[List[float]]): Collected embeddings.
         index (Optional[faiss.Index]): FAISS index instance.
@@ -60,6 +58,7 @@ class Indexer:
         chunks_json_path: pathlib.Path | None = None,
         chunks_pkl_path: pathlib.Path | None = None,
         sleep_between_calls: float = 10.0,
+        embedder: Embedder | None = None,
     ) -> None:
         """
         Initialize the indexer.
@@ -78,11 +77,11 @@ class Indexer:
             chunks_pkl_path (pathlib.Path | None): Output pickle path for
                 chunks.
             sleep_between_calls (float): Delay between API calls in seconds.
+            embedder (Embedder | None): Embedding backend instance.
 
         Raises:
             RuntimeError: If MISTRAL_API_KEY is missing.
         """
-        load_dotenv()
         self.root = pathlib.Path(root)
         self.model = model
         self.chunk_size = chunk_size
@@ -111,12 +110,12 @@ class Indexer:
             indexes_dir / "all_chunks.pkl"
         )
 
-        api_key = os.environ.get("MISTRAL_API_KEY")
-        if not api_key:
-            raise RuntimeError("MISTRAL_API_KEY missing from environment")
-        self.client = Mistral(api_key=api_key)
+        # Embedding backend
+        self.embedder: Embedder = (
+            embedder or MistralEmbedder(model=self.model,
+                                        delay=self.sleep_between_calls)
+        )
 
-        # In-memory state
         self.valid_chunks: List[str] = []
         self.embeddings_list: List[List[float]] = []
         self.index: Optional[faiss.Index] = None
@@ -252,21 +251,7 @@ class Indexer:
         Returns:
             Optional[List[float]]: Embedding vector or None on failure.
         """
-        try:
-            batch = self.client.embeddings.create(model=self.model,
-                                                  inputs=text)
-            return batch.data[0].embedding
-        except Exception as e:
-            self.logger.error(f"API error: {e}. Waiting 60s before retry...")
-            time.sleep(60)
-            try:
-                batch = self.client.embeddings.create(model=self.model,
-                                                      inputs=text)
-                return batch.data[0].embedding
-            except Exception as e2:
-                self.logger.error(f"Retry failed for this text."
-                                  f"Skipping. Error: {e2}")
-                return None
+        return self.embedder.embed(text)
 
 
 def main() -> None:
