@@ -213,6 +213,55 @@ class Indexer:
             f"Chunks: {self.chunks_json_path} / {self.chunks_pkl_path}"
         )
 
+    def _filter_by_file(self, file_path: pathlib.Path) -> int:
+        """Filter in-memory items that originate from a given file.
+
+        Args:
+            file_path: Absolute or relative path of the file to remove.
+
+        Returns:
+            int: Number of removed chunks.
+        """
+        target = str(pathlib.Path(file_path).resolve())
+
+        # Normalize sources to absolute paths to compare reliably.
+        abs_sources = [
+            str(pathlib.Path(s).resolve()) for s in self.valid_sources
+        ]
+        keep_mask = [s != target for s in abs_sources]
+
+        removed = len(keep_mask) - sum(keep_mask)
+        if removed == 0:
+            self.logger.info("No chunks to remove for this file.")
+            return 0
+
+        # Filter in-memory parallel lists using the same boolean mask.
+        self.valid_chunks = [
+            c for c, k in zip(self.valid_chunks, keep_mask) if k
+        ]
+        self.valid_sources = [
+            s for s, k in zip(self.valid_sources, keep_mask) if k
+        ]
+        self.embeddings_list = [
+            e for e, k in zip(self.embeddings_list, keep_mask) if k
+        ]
+        return removed
+
+    def _rebuild_index_from_memory(self) -> None:
+        """Rebuild the FAISS index from the in-memory embeddings.
+
+        Returns:
+            None: The method updates `self.index` in place.
+        """
+        if not self.embeddings_list:
+            self.index = None
+            return
+
+        embs = np.array(self.embeddings_list, dtype="float32")
+        dim = embs.shape[1]
+        self.index = faiss.IndexFlatL2(dim)
+        self.index.add(embs)
+
     def _list_md_files(self, root: pathlib.Path) -> List[pathlib.Path]:
         """
         List Markdown files under the given root.
@@ -286,35 +335,11 @@ class Indexer:
         Returns:
             int: Number of removed chunks.
         """
-        target = str(pathlib.Path(file_path).resolve())
-        # Align sources to absolute paths for comparison
-        abs_sources = [str(pathlib.Path(s).resolve())
-                       for s in self.valid_sources]
-        keep_mask = [s != target for s in abs_sources]
-
-        removed = len(keep_mask) - sum(keep_mask)
+        removed = self._filter_by_file(file_path)
         if removed == 0:
-            self.logger.info("No chunks to remove for this file.")
             return 0
 
-        # Filter in-memory lists
-        self.valid_chunks = [c for c, k in zip(self.valid_chunks,
-                                               keep_mask) if k]
-        self.valid_sources = [s for s, k in zip(self.valid_sources,
-                                                keep_mask) if k]
-        self.embeddings_list = [e for e, k in zip(self.embeddings_list,
-                                                  keep_mask) if k]
-
-        # Rebuild FAISS
-        if self.embeddings_list:
-            embs = np.array(self.embeddings_list, dtype="float32")
-            dim = embs.shape[1]
-            self.index = faiss.IndexFlatL2(dim)
-            self.index.add(embs)
-        else:
-            self.index = None
-
-        # Persist
+        self._rebuild_index_from_memory()
         self._save_intermediate(i=max(0, len(self.valid_chunks) - 1))
         self._finalize_index()
         return removed
