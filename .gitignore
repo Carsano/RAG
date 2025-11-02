@@ -9,3 +9,10 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# data files
+data/
+logs/
+
+# Temps files
+tmp_*
