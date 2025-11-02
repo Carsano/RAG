@@ -13,3 +13,6 @@ wheels/
 # data files
 data/
 logs/
+
+# Temps files
+tmp_*
