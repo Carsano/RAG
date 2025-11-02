@@ -1,3 +1,10 @@
+"""
+Simple FAISS indexer for Markdown files using Mistral embeddings.
+
+This module scans a root directory, chunks Markdown, generates embeddings,
+and builds a FAISS index. It logs progress and writes artifacts for later
+retrieval.
+"""
 from __future__ import annotations
 
 import os
@@ -17,15 +24,28 @@ from utils.logger import Logger
 
 class Indexer:
     """
-    Indexe récursivement des fichiers Markdown dans un index FAISS
-    à partir d'embeddings Mistral.
+    Index Markdown files into a FAISS index using Mistral embeddings.
 
-    - Scan récursif d'un dossier racine
-    - Découpage Markdown (chunk_size, chunk_overlap)
-    - Embedding via API Mistral avec un retry unique
-    - Index FAISS (L2) + sauvegardes intermédiaires pour reprise
-    - Export: index.faiss + all_chunks.(pkl|json)
-    - Fichiers temporaires: tmp_chunks.pkl + tmp_embeddings.npy
+    The class performs a recursive scan, Markdown chunking, embedding calls,
+    and FAISS indexing. It persists intermediate state to allow resuming
+    long runs, and exports the final index and chunk lists.
+
+    Attributes:
+        root (pathlib.Path): Root directory that contains Markdown files.
+        model (str): Mistral embedding model name.
+        chunk_size (int): Max characters per chunk before overlap.
+        chunk_overlap (int): Characters of overlap between chunks.
+        sleep_between_calls (float): Delay between API calls in seconds.
+        tmp_chunks_path (pathlib.Path): Path for tmp chunks pickle.
+        tmp_embeddings_path (pathlib.Path): Path for tmp embeddings npy.
+        index_path (pathlib.Path): Output FAISS index path.
+        chunks_json_path (pathlib.Path): Output JSON chunks path.
+        chunks_pkl_path (pathlib.Path): Output pickle chunks path.
+        client (Mistral): Mistral client instance.
+        valid_chunks (List[str]): Chunks that were embedded.
+        embeddings_list (List[List[float]]): Collected embeddings.
+        index (Optional[faiss.Index]): FAISS index instance.
+        logger (Logger): Application logger.
     """
 
     def __init__(
@@ -41,6 +61,27 @@ class Indexer:
         chunks_pkl_path: pathlib.Path | None = None,
         sleep_between_calls: float = 10.0,
     ) -> None:
+        """
+        Initialize the indexer.
+
+        Args:
+            root (pathlib.Path): Root directory to scan.
+            model (str): Embedding model name for Mistral.
+            chunk_size (int): Chunk size in characters.
+            chunk_overlap (int): Overlap size in characters.
+            tmp_chunks_path (pathlib.Path | None): Tmp pickle path for chunks.
+            tmp_embeddings_path (pathlib.Path | None): Tmp numpy path for
+                embeddings.
+            index_path (pathlib.Path | None): Output FAISS index path.
+            chunks_json_path (pathlib.Path | None): Output JSON path for
+                chunks.
+            chunks_pkl_path (pathlib.Path | None): Output pickle path for
+                chunks.
+            sleep_between_calls (float): Delay between API calls in seconds.
+
+        Raises:
+            RuntimeError: If MISTRAL_API_KEY is missing.
+        """
         load_dotenv()
         self.root = pathlib.Path(root)
         self.model = model
@@ -76,6 +117,16 @@ class Indexer:
         self.logger = Logger("indexer")
 
     def build(self) -> None:
+        """
+        Build the FAISS index from Markdown files.
+
+        Scans files, chunks text, creates embeddings with Mistral, and builds a
+        FAISS L2 index. Intermediate progress is saved to allow resuming.
+
+        Side Effects:
+            Writes temporary chunk and embedding files. Writes final index and
+            chunk lists on success.
+        """
         files = self._list_md_files(self.root)
         all_chunks = self._chunk_markdown_files(files)
 
@@ -133,9 +184,27 @@ class Indexer:
         )
 
     def _list_md_files(self, root: pathlib.Path) -> List[pathlib.Path]:
+        """
+        List Markdown files under the given root.
+
+        Args:
+            root (pathlib.Path): Root directory to scan.
+
+        Returns:
+            List[pathlib.Path]: Sorted list of Markdown file paths.
+        """
         return [p for p in root.rglob("*.md") if p.is_file()]
 
     def _chunk_markdown_files(self, files: List[pathlib.Path]) -> List[str]:
+        """
+        Split Markdown files into chunks.
+
+        Args:
+            files (List[pathlib.Path]): Markdown file paths.
+
+        Returns:
+            List[str]: Text chunks produced by the splitter.
+        """
         splitter = MarkdownTextSplitter(
             chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
         )
@@ -146,6 +215,15 @@ class Indexer:
         return chunks
 
     def _embed_text(self, text: str) -> Optional[List[float]]:
+        """
+        Create an embedding for a single text.
+
+        Args:
+            text (str): The text to embed.
+
+        Returns:
+            Optional[List[float]]: Embedding vector or None on failure.
+        """
         try:
             batch = self.client.embeddings.create(model=self.model,
                                                   inputs=text)
@@ -164,6 +242,11 @@ class Indexer:
 
 
 def main() -> None:
+    """
+    Entry point for a manual indexing run.
+
+    Uses the `clean_md_database` folder as root and builds the index.
+    """
     ROOT = pathlib.Path(__file__).parent / "clean_md_database"
     indexer = Indexer(root=ROOT)
     indexer.build()
