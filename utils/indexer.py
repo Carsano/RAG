@@ -219,7 +219,8 @@ class Indexer:
             pickle.dump(self.valid_chunks, f)
         with open(self.chunks_json_path, "w", encoding="utf-8") as f:
             json.dump(self.valid_chunks, f, ensure_ascii=False, indent=2)
-        sources_json = self.chunks_json_path.with_name("all_chunk_sources.json")
+        sources_json = self.chunks_json_path.with_name(
+            "all_chunk_sources.json")
         with open(sources_json, "w", encoding="utf-8") as f:
             json.dump(self.valid_sources, f, ensure_ascii=False, indent=2)
         faiss.write_index(self.index, str(self.index_path))
@@ -240,8 +241,8 @@ class Indexer:
         """
         return [p for p in root.rglob("*.md") if p.is_file()]
 
-    def _chunk_markdown_files(self, files: List[pathlib.Path]) -> (
-        List[str], List[str]):
+    def _chunk_markdown_files(self, files: List[pathlib.Path]
+                              ) -> (List[str] | List[str]):
         """
         Split Markdown files into chunks.
 
