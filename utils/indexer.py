@@ -42,6 +42,7 @@ class Indexer:
         embedder (Embedder): Embedding backend.
         valid_chunks (List[str]): Chunks that were embedded.
         embeddings_list (List[List[float]]): Collected embeddings.
+        valid_sources (List[str]): Source file path per valid chunk.
         index (Optional[faiss.Index]): FAISS index instance.
         logger (Logger): Application logger.
     """
@@ -118,6 +119,7 @@ class Indexer:
 
         self.valid_chunks: List[str] = []
         self.embeddings_list: List[List[float]] = []
+        self.valid_sources: List[str] = []
         self.index: Optional[faiss.Index] = None
         self.logger = Logger("indexer")
 
@@ -144,6 +146,10 @@ class Indexer:
         if self.tmp_chunks_path.exists():
             with open(self.tmp_chunks_path, "rb") as f:
                 self.valid_chunks = pickle.load(f)
+            tmp_sources = self.tmp_chunks_path.with_name("tmp_sources.pkl")
+            if tmp_sources.exists():
+                with open(tmp_sources, "rb") as f:
+                    self.valid_sources = pickle.load(f)
         if self.tmp_embeddings_path.exists():
             self.embeddings_list = (
                 np.load(self.tmp_embeddings_path).tolist()
@@ -243,7 +249,7 @@ class Indexer:
             files (List[pathlib.Path]): Markdown file paths.
 
         Returns:
-            List[str]: Text chunks produced by the splitter.
+            Tuple[List[str], List[str]]: (chunks, sources) parallel lists.
         """
         splitter = MarkdownTextSplitter(
             chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
