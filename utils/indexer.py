@@ -123,22 +123,6 @@ class Indexer:
         self.index: Optional[faiss.Index] = None
         self.logger = Logger("indexer")
 
-    def build(self) -> None:
-        """
-        Orchestrate indexing from Markdown files to a FAISS index.
-
-        Performs scan, chunking, resume of prior state, embedding, and
-        finalization. Side effects are delegated to dedicated helpers.
-        """
-        files = self._list_md_files(self.root)
-        all_chunks, all_sources = self._chunk_markdown_files(files)
-        self._load_resume_state()
-        # Align valid_sources length with valid_chunks if needed
-        if len(self.valid_sources) != len(self.valid_chunks):
-            self.valid_sources = self.valid_sources[:len(self.valid_chunks)]
-        self._embed_and_save(all_chunks, all_sources)
-        self._finalize_index()
-
     def _load_resume_state(self) -> None:
         """
         Load prior progress from temporary files if they exist.
@@ -275,6 +259,22 @@ class Indexer:
             Optional[List[float]]: Embedding vector or None on failure.
         """
         return self.embedder.embed(text)
+
+    def build(self) -> None:
+        """
+        Orchestrate indexing from Markdown files to a FAISS index.
+
+        Performs scan, chunking, resume of prior state, embedding, and
+        finalization. Side effects are delegated to dedicated helpers.
+        """
+        files = self._list_md_files(self.root)
+        all_chunks, all_sources = self._chunk_markdown_files(files)
+        self._load_resume_state()
+        # Align valid_sources length with valid_chunks if needed
+        if len(self.valid_sources) != len(self.valid_chunks):
+            self.valid_sources = self.valid_sources[:len(self.valid_chunks)]
+        self._embed_and_save(all_chunks, all_sources)
+        self._finalize_index()
 
     def remove_file(self, file_path: pathlib.Path) -> int:
         """
