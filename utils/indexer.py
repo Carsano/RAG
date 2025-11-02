@@ -246,7 +246,8 @@ def main() -> None:
 
     Uses the `clean_md_database` folder as root and builds the index.
     """
-    ROOT = pathlib.Path(__file__).parent / "clean_md_database"
+    ROOT = (pathlib.Path(__file__).resolve().parent.parent / "data" /
+            "clean_md_database")
     indexer = Indexer(root=ROOT)
     indexer.build()
 
