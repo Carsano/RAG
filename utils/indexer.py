@@ -124,24 +124,36 @@ class Indexer:
 
     def build(self) -> None:
         """
-        Build the FAISS index from Markdown files.
+        Orchestrate indexing from Markdown files to a FAISS index.
 
-        Scans files, chunks text, creates embeddings with Mistral, and builds a
-        FAISS L2 index. Intermediate progress is saved to allow resuming.
-
-        Side Effects:
-            Writes temporary chunk and embedding files. Writes final index and
-            chunk lists on success.
+        Performs scan, chunking, resume of prior state, embedding, and
+        finalization. Side effects are delegated to dedicated helpers.
         """
         files = self._list_md_files(self.root)
         all_chunks = self._chunk_markdown_files(files)
+        self._load_resume_state()
+        self._embed_and_save(all_chunks)
+        self._finalize_index()
 
+    def _load_resume_state(self) -> None:
+        """
+        Load prior progress from temporary files if they exist.
+        """
         if self.tmp_chunks_path.exists():
             with open(self.tmp_chunks_path, "rb") as f:
                 self.valid_chunks = pickle.load(f)
         if self.tmp_embeddings_path.exists():
-            self.embeddings_list = np.load(self.tmp_embeddings_path).tolist()
+            self.embeddings_list = (
+                np.load(self.tmp_embeddings_path).tolist()
+            )
 
+    def _embed_and_save(self, all_chunks: List[str]) -> None:
+        """
+        Embed remaining chunks and persist intermediate progress.
+
+        Args:
+            all_chunks (List[str]): Full list of chunks to process.
+        """
         start_idx = len(self.valid_chunks)
         for i, chunk in enumerate(all_chunks[start_idx:], start=start_idx):
             self.logger.info(f"[{i}] Embedding in progress...")
@@ -153,23 +165,35 @@ class Indexer:
 
             self.embeddings_list.append(emb)
             self.valid_chunks.append(chunk)
-
-            # Intermediate saves
-            with open(self.tmp_chunks_path, "wb") as f:
-                pickle.dump(self.valid_chunks, f)
-            np.save(
-                self.tmp_embeddings_path,
-                np.array(self.embeddings_list, dtype="float32"),
-            )
-            self.logger.info(
-                f"[{i}] Save done: {len(self.valid_chunks)} chunks, "
-                f"{len(self.embeddings_list)} embeddings"
-            )
+            self._save_intermediate(i)
             time.sleep(self.sleep_between_calls)
 
-        # FAISS finalization
+    def _save_intermediate(self, i: int) -> None:
+        """
+        Persist intermediate chunk and embedding state to disk.
+
+        Args:
+            i (int): Index of the last processed chunk.
+        """
+        with open(self.tmp_chunks_path, "wb") as f:
+            pickle.dump(self.valid_chunks, f)
+        np.save(
+            self.tmp_embeddings_path,
+            np.array(self.embeddings_list, dtype="float32"),
+        )
+        self.logger.info(
+            f"[{i}] Save done: {len(self.valid_chunks)} chunks, "
+            f"{len(self.embeddings_list)} embeddings"
+        )
+
+    def _finalize_index(self) -> None:
+        """
+        Build FAISS index and write final artifacts to disk.
+        """
         if not self.embeddings_list:
-            self.logger.warning("No embeddings generated. Nothing to index.")
+            self.logger.warning(
+                "No embeddings generated. Nothing to index."
+            )
             return
 
         embeddings = np.array(self.embeddings_list, dtype="float32")
@@ -177,7 +201,6 @@ class Indexer:
         self.index = faiss.IndexFlatL2(dimension)
         self.index.add(embeddings)
 
-        # Final exports
         with open(self.chunks_pkl_path, "wb") as f:
             pickle.dump(self.valid_chunks, f)
         with open(self.chunks_json_path, "w", encoding="utf-8") as f:
