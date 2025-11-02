@@ -129,9 +129,12 @@ class Indexer:
         finalization. Side effects are delegated to dedicated helpers.
         """
         files = self._list_md_files(self.root)
-        all_chunks = self._chunk_markdown_files(files)
+        all_chunks, all_sources = self._chunk_markdown_files(files)
         self._load_resume_state()
-        self._embed_and_save(all_chunks)
+        # Align valid_sources length with valid_chunks if needed
+        if len(self.valid_sources) != len(self.valid_chunks):
+            self.valid_sources = self.valid_sources[:len(self.valid_chunks)]
+        self._embed_and_save(all_chunks, all_sources)
         self._finalize_index()
 
     def _load_resume_state(self) -> None:
@@ -146,12 +149,14 @@ class Indexer:
                 np.load(self.tmp_embeddings_path).tolist()
             )
 
-    def _embed_and_save(self, all_chunks: List[str]) -> None:
+    def _embed_and_save(self, all_chunks: List[str],
+                        all_sources: List[str]) -> None:
         """
         Embed remaining chunks and persist intermediate progress.
 
         Args:
             all_chunks (List[str]): Full list of chunks to process.
+            all_sources (List[str]): Corresponding source file paths.
         """
         start_idx = len(self.valid_chunks)
         for i, chunk in enumerate(all_chunks[start_idx:], start=start_idx):
@@ -164,6 +169,7 @@ class Indexer:
 
             self.embeddings_list.append(emb)
             self.valid_chunks.append(chunk)
+            self.valid_sources.append(all_sources[i])
             self._save_intermediate(i)
             time.sleep(self.sleep_between_calls)
 
@@ -176,6 +182,9 @@ class Indexer:
         """
         with open(self.tmp_chunks_path, "wb") as f:
             pickle.dump(self.valid_chunks, f)
+        tmp_sources = self.tmp_chunks_path.with_name("tmp_sources.pkl")
+        with open(tmp_sources, "wb") as f:
+            pickle.dump(self.valid_sources, f)
         np.save(
             self.tmp_embeddings_path,
             np.array(self.embeddings_list, dtype="float32"),
@@ -204,6 +213,9 @@ class Indexer:
             pickle.dump(self.valid_chunks, f)
         with open(self.chunks_json_path, "w", encoding="utf-8") as f:
             json.dump(self.valid_chunks, f, ensure_ascii=False, indent=2)
+        sources_json = self.chunks_json_path.with_name("all_chunk_sources.json")
+        with open(sources_json, "w", encoding="utf-8") as f:
+            json.dump(self.valid_sources, f, ensure_ascii=False, indent=2)
         faiss.write_index(self.index, str(self.index_path))
         self.logger.info(
             f"Index written: {self.index_path} | "
@@ -222,7 +234,8 @@ class Indexer:
         """
         return [p for p in root.rglob("*.md") if p.is_file()]
 
-    def _chunk_markdown_files(self, files: List[pathlib.Path]) -> List[str]:
+    def _chunk_markdown_files(self, files: List[pathlib.Path]) -> (
+        List[str], List[str]):
         """
         Split Markdown files into chunks.
 
@@ -236,10 +249,13 @@ class Indexer:
             chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
         )
         chunks: List[str] = []
+        sources: List[str] = []
         for path in files:
             text = path.read_text(encoding="utf-8", errors="ignore")
-            chunks.extend(splitter.split_text(text))
-        return chunks
+            parts = splitter.split_text(text)
+            chunks.extend(parts)
+            sources.extend([str(path)] * len(parts))
+        return chunks, sources
 
     def _embed_text(self, text: str) -> Optional[List[float]]:
         """
@@ -252,6 +268,49 @@ class Indexer:
             Optional[List[float]]: Embedding vector or None on failure.
         """
         return self.embedder.embed(text)
+
+    def remove_file(self, file_path: pathlib.Path) -> int:
+        """
+        Remove all chunks originating from a given file, then rebuild index.
+
+        Args:
+            file_path (pathlib.Path): Absolute or relative path to remove.
+
+        Returns:
+            int: Number of removed chunks.
+        """
+        target = str(pathlib.Path(file_path).resolve())
+        # Align sources to absolute paths for comparison
+        abs_sources = [str(pathlib.Path(s).resolve())
+                       for s in self.valid_sources]
+        keep_mask = [s != target for s in abs_sources]
+
+        removed = len(keep_mask) - sum(keep_mask)
+        if removed == 0:
+            self.logger.info("No chunks to remove for this file.")
+            return 0
+
+        # Filter in-memory lists
+        self.valid_chunks = [c for c, k in zip(self.valid_chunks,
+                                               keep_mask) if k]
+        self.valid_sources = [s for s, k in zip(self.valid_sources,
+                                                keep_mask) if k]
+        self.embeddings_list = [e for e, k in zip(self.embeddings_list,
+                                                  keep_mask) if k]
+
+        # Rebuild FAISS
+        if self.embeddings_list:
+            embs = np.array(self.embeddings_list, dtype="float32")
+            dim = embs.shape[1]
+            self.index = faiss.IndexFlatL2(dim)
+            self.index.add(embs)
+        else:
+            self.index = None
+
+        # Persist
+        self._save_intermediate(i=max(0, len(self.valid_chunks) - 1))
+        self._finalize_index()
+        return removed
 
 
 def main() -> None:
