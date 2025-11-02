@@ -355,6 +355,9 @@ def main() -> None:
             "clean_md_database")
     indexer = Indexer(root=ROOT)
     indexer.build()
+    removed = indexer.remove_file(
+        pathlib.Path("data/clean_md_database/budget/budget_2024.md"))
+    indexer.logger.info(f"Removed {removed}")
 
 
 if __name__ == "__main__":
