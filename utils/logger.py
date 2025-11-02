@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from datetime import datetime
 
 
 class Logger:
@@ -30,10 +31,10 @@ class Logger:
             name (str): The name of the logger.
             log_file (str | None): Path to the log file.
         """
-        log_path = Path(log_file or (
-            Path(__file__).resolve().parent / "app.log"
-            ))
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_dir = Path(__file__).resolve().parent / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        date_str = datetime.now().strftime("%Y%m%d")
+        log_path = log_dir / f"{date_str}_RAG_logs.log"
 
         self.logger = logging.getLogger(name)
         if self.logger.handlers:
