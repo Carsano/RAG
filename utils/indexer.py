@@ -89,20 +89,26 @@ class Indexer:
         self.chunk_overlap = chunk_overlap
         self.sleep_between_calls = sleep_between_calls
 
-        self.tmp_chunks_path = tmp_chunks_path or pathlib.Path(
-            "tmp_chunks.pkl"
+        # Resolve project root and ensure data/indexes exists
+        project_root = pathlib.Path(__file__).resolve().parent.parent
+        indexes_dir = project_root / "data" / "indexes"
+        indexes_dir.mkdir(parents=True, exist_ok=True)
+
+        # Default artifact locations under data/indexes/
+        self.tmp_chunks_path = tmp_chunks_path or (
+            indexes_dir / "tmp_chunks.pkl"
         )
-        self.tmp_embeddings_path = tmp_embeddings_path or pathlib.Path(
-            "tmp_embeddings.npy"
+        self.tmp_embeddings_path = tmp_embeddings_path or (
+            indexes_dir / "tmp_embeddings.npy"
         )
-        self.index_path = index_path or pathlib.Path(
-            "faiss_index.idx"
+        self.index_path = index_path or (
+            indexes_dir / "faiss_index.idx"
         )
-        self.chunks_json_path = chunks_json_path or pathlib.Path(
-            "all_chunks.json"
+        self.chunks_json_path = chunks_json_path or (
+            indexes_dir / "all_chunks.json"
         )
-        self.chunks_pkl_path = chunks_pkl_path or pathlib.Path(
-            "all_chunks.pkl"
+        self.chunks_pkl_path = chunks_pkl_path or (
+            indexes_dir / "all_chunks.pkl"
         )
 
         api_key = os.environ.get("MISTRAL_API_KEY")
