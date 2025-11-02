@@ -31,7 +31,7 @@ class Logger:
             name (str): The name of the logger.
             log_file (str | None): Path to the log file.
         """
-        log_dir = Path(__file__).resolve().parent / "logs"
+        log_dir = Path(__file__).resolve().parent.parent / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         date_str = datetime.now().strftime("%Y%m%d")
         log_path = log_dir / f"{date_str}_RAG_logs.log"
