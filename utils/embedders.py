@@ -10,8 +10,11 @@ from __future__ import annotations
 import os
 import time
 from typing import List, Optional, Protocol
+from dotenv import load_dotenv
 
 from mistralai import Mistral
+
+load_dotenv()
 
 
 class Embedder(Protocol):
