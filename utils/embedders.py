@@ -105,3 +105,18 @@ class MistralEmbedder:
             out.append(self.embed(t))
             time.sleep(self.delay)
         return out
+
+
+class FakeEmbedder:
+    """Deterministic, offline embedder for tests and development.
+
+    Produces small fixed-size vectors derived from a hash of the input.
+    """
+
+    def __init__(self, dim: int = 8):
+        """Initialize fake embedder.
+
+        Args:
+            dim (int): Output vector dimension.
+        """
+        self.dim = dim
