@@ -33,7 +33,8 @@ class Indexer:
         model (str): Mistral embedding model name.
         chunk_size (int): Max characters per chunk before overlap.
         chunk_overlap (int): Characters of overlap between chunks.
-        chunker (Chunker | None): Strategy object used to split text into chunks.
+        chunker (Chunker | None): Strategy object used to
+            split text into chunks.
         sleep_between_calls (float): Delay between API calls in seconds.
         tmp_chunks_path (pathlib.Path): Path for tmp chunks pickle.
         tmp_embeddings_path (pathlib.Path): Path for tmp embeddings npy.
@@ -71,7 +72,8 @@ class Indexer:
             model (str): Embedding model name for Mistral.
             chunk_size (int): Chunk size in characters.
             chunk_overlap (int): Overlap size in characters.
-            chunker (Chunker | None): Strategy object used to split text into chunks.
+            chunker (Chunker | None): Strategy object used to
+                split text into chunks.
             tmp_chunks_path (pathlib.Path | None): Tmp pickle path for chunks.
             tmp_embeddings_path (pathlib.Path | None): Tmp numpy path for
                 embeddings.
@@ -90,7 +92,11 @@ class Indexer:
         self.model = model
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.chunker: Chunker = chunker or MarkdownTagChunker(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+        self.chunker: Chunker = (
+            chunker or
+            MarkdownTagChunker(chunk_size=self.chunk_size,
+                               chunk_overlap=self.chunk_overlap)
+        )
         self.sleep_between_calls = sleep_between_calls
 
         # Resolve project root and ensure data/indexes exists
