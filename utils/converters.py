@@ -14,14 +14,46 @@ from docling.document_converter import DocumentConverter as _DoclingConverter
 
 
 class BaseConverter:
-    """Abstract base class for file-to-Markdown converters."""
+    """Abstract base class for file-to-Markdown converters.
+
+    Subclasses should implement concrete conversion strategies but keep the
+    public interface stable. The base class also provides a helper to persist
+    converted Markdown while preserving the relative directory layout.
+    """
 
     def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
+        """Convert a single file to Markdown text.
+
+        Args:
+            input_path: Absolute or relative path to the input file.
+
+        Returns:
+            The Markdown text if the format is supported and conversion
+            succeeds. Returns ``None`` if the file type is unsupported or if
+            conversion fails gracefully.
+        """
         raise NotImplementedError
 
-    def save_markdown(self, content: str, input_path: pathlib.Path,
-                      output_root: pathlib.Path) -> pathlib.Path:
-        """Save Markdown content preserving relative structure."""
+    def save_markdown(
+        self,
+        content: str,
+        input_path: pathlib.Path,
+        output_root: pathlib.Path,
+    ) -> pathlib.Path:
+        """Save Markdown content while mirroring the input tree.
+
+        The relative path from the converter's ``input_root`` to ``input_path``
+        is preserved under ``output_root`` and the file extension is replaced
+        with ``.md``.
+
+        Args:
+            content: Markdown content to write.
+            input_path: Path to the original input file.
+            output_root: Root directory where Markdown artifacts are stored.
+
+        Returns:
+            The full path of the written Markdown file.
+        """
         relative_path = os.path.relpath(input_path, self.input_root)
         output_path = output_root / pathlib.Path(relative_path
                                                  ).with_suffix(".md")
