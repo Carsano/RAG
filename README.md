@@ -52,6 +52,7 @@ uv run python -m utils.indexer
 ```
 .
 ├── data/
+│   ├── ccontrolled_documentation/
 │   ├── clean_md_database/
 │   └── indexes/
 │       ├── all_chunk_sources.json
@@ -62,6 +63,8 @@ uv run python -m utils.indexer
 ├── pyproject.toml
 ├── README.md
 ├── utils/
+│   ├── chunkers.py
+│   ├── converters.py
 │   ├── embedders.py
 │   ├── indexer.py
 │   └── logger.py
@@ -69,9 +72,9 @@ uv run python -m utils.indexer
 ```
 
 ## Roadmap
+- [ ] Support for PDF, DOCX, and TXT sources
 - [ ] Streamlit web interface for local querying
 - [ ] Docker container for deployment
-- [ ] Support for PDF, DOCX, and TXT sources
 - [ ] Incremental indexing
 - [ ] Plugin system for external models
 
