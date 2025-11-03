@@ -11,6 +11,7 @@ import pathlib
 from typing import List, Optional
 
 from docling.document_converter import DocumentConverter as _DoclingConverter
+from utils.logger import Logger
 
 
 class BaseConverter:
@@ -85,8 +86,13 @@ class DocumentConverter(BaseConverter):
         """
         self.input_root = pathlib.Path(input_root)
         self.output_root = pathlib.Path(output_root)
+        self.logger = Logger(name="converters")
 
         self._converter = _DoclingConverter() if _DoclingConverter else None
+        self.logger.info(
+            f"Initialized DocumentConverter | input_root={self.input_root}"
+            f" | output_root={self.output_root}"
+        )
 
     def _convert_with_docling(self, path: pathlib.Path) -> Optional[str]:
         """Convert a file using Docling.
@@ -101,7 +107,7 @@ class DocumentConverter(BaseConverter):
             result = self._converter.convert(str(path))
             return result.document.export_to_markdown()
         except Exception as exc:  # pragma: no cover
-            print(f"Conversion failed for {path}: {exc}")
+            self.logger.error(f"Conversion failed for {path}: {exc}")
             return None
 
     def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
@@ -119,8 +125,12 @@ class DocumentConverter(BaseConverter):
         """
         ext = input_path.suffix.lower()
         if ext == ".md":
+            self.logger.info(f"Copying Markdown file: {input_path}")
             return input_path.read_text(encoding="utf-8", errors="ignore")
         if not self._converter:
+            self.logger.warning(
+                f"Skipping non-Markdown without docling: {input_path}"
+                )
             return None
         return self._convert_with_docling(input_path)
 
@@ -135,15 +145,33 @@ class DocumentConverter(BaseConverter):
             A list of paths to the written Markdown files.
         """
         outputs: List[pathlib.Path] = []
+        copied = 0
+        converted = 0
+        skipped = 0
+        if not self.input_root.exists():
+            self.logger.error(f"Input directory not found: {self.input_root}")
+            return outputs
+
+        self.logger.info(f"Starting conversion walk: {self.input_root}")
         for root, _dirs, files in os.walk(self.input_root):
             for name in files:
                 in_path = pathlib.Path(root) / name
                 content = self.convert_file(in_path)
                 if content is None:
+                    skipped += 1
                     continue
                 out_path = self.save_markdown(content, in_path,
                                               self.output_root)
                 outputs.append(out_path)
+                if in_path.suffix.lower() == ".md":
+                    copied += 1
+                else:
+                    converted += 1
+        self.logger.info(
+            f"Conversion summary | total={copied + converted + skipped}"
+            f" | converted={converted}"
+            f"| copied={copied} | skipped={skipped}"
+        )
         return outputs
 
 
@@ -153,4 +181,7 @@ if __name__ == "__main__":
         output_root=pathlib.Path("../data/clean_md_database"),
     )
     written = converter.convert_all()
-    print(f"Converted {len(written)} documents to Markdown.")
+    Logger(name="converters").info(
+        f"Converted {len(written)} documents to Markdown"
+        f" → {pathlib.Path("../data/clean_md_database").resolve()}"
+    )
