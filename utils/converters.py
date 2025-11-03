@@ -177,11 +177,11 @@ class DocumentConverter(BaseConverter):
 
 if __name__ == "__main__":
     converter = DocumentConverter(
-        input_root=pathlib.Path("../data/controlled_documentation"),
-        output_root=pathlib.Path("../data/clean_md_database"),
+        input_root=pathlib.Path("./data/controlled_documentation"),
+        output_root=pathlib.Path("./data/clean_md_database"),
     )
     written = converter.convert_all()
     Logger(name="converters").info(
         f"Converted {len(written)} documents to Markdown"
-        f" → {pathlib.Path("../data/clean_md_database").resolve()}"
+        f" → {pathlib.Path("./data/clean_md_database").resolve()}"
     )
