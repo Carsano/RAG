@@ -10,6 +10,8 @@ import os
 import pathlib
 from typing import Optional
 
+from docling.document_converter import DocumentConverter as _DoclingConverter
+
 
 class BaseConverter:
     """Abstract base class for file-to-Markdown converters."""
@@ -26,3 +28,19 @@ class BaseConverter:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
         return output_path
+
+
+class DocumentConverter(BaseConverter):
+    """
+    Convert all supported documents in an input directory to Markdown.
+
+    If `docling` is installed, it will handle multi-format conversion.
+    Markdown files are simply copied to the output directory.
+    """
+
+    def __init__(self, input_root: pathlib.Path,
+                 output_root: pathlib.Path) -> None:
+        self.input_root = pathlib.Path(input_root)
+        self.output_root = pathlib.Path(output_root)
+
+        self._converter = _DoclingConverter() if _DoclingConverter else None
