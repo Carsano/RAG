@@ -15,7 +15,7 @@ from typing import List, Optional
 
 import numpy as np
 import faiss
-from langchain_text_splitters import MarkdownTextSplitter
+from utils.chunkers import Chunker, MarkdownTagChunker
 from utils.embedders import Embedder, MistralEmbedder
 from utils.logger import Logger
 
@@ -33,6 +33,7 @@ class Indexer:
         model (str): Mistral embedding model name.
         chunk_size (int): Max characters per chunk before overlap.
         chunk_overlap (int): Characters of overlap between chunks.
+        chunker (Chunker | None): Strategy object used to split text into chunks.
         sleep_between_calls (float): Delay between API calls in seconds.
         tmp_chunks_path (pathlib.Path): Path for tmp chunks pickle.
         tmp_embeddings_path (pathlib.Path): Path for tmp embeddings npy.
@@ -53,6 +54,7 @@ class Indexer:
         model: str = "mistral-embed",
         chunk_size: int = 800,
         chunk_overlap: int = 150,
+        chunker: Chunker | None = None,
         tmp_chunks_path: pathlib.Path | None = None,
         tmp_embeddings_path: pathlib.Path | None = None,
         index_path: pathlib.Path | None = None,
@@ -69,6 +71,7 @@ class Indexer:
             model (str): Embedding model name for Mistral.
             chunk_size (int): Chunk size in characters.
             chunk_overlap (int): Overlap size in characters.
+            chunker (Chunker | None): Strategy object used to split text into chunks.
             tmp_chunks_path (pathlib.Path | None): Tmp pickle path for chunks.
             tmp_embeddings_path (pathlib.Path | None): Tmp numpy path for
                 embeddings.
@@ -87,6 +90,7 @@ class Indexer:
         self.model = model
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.chunker: Chunker = chunker or MarkdownTagChunker(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
         self.sleep_between_calls = sleep_between_calls
 
         # Resolve project root and ensure data/indexes exists
@@ -277,7 +281,7 @@ class Indexer:
     def _chunk_markdown_files(self, files: List[pathlib.Path]
                               ) -> (List[str] | List[str]):
         """
-        Split Markdown files into chunks.
+        Split Markdown files into chunks using the configured chunker.
 
         Args:
             files (List[pathlib.Path]): Markdown file paths.
@@ -285,14 +289,11 @@ class Indexer:
         Returns:
             Tuple[List[str], List[str]]: (chunks, sources) parallel lists.
         """
-        splitter = MarkdownTextSplitter(
-            chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
-        )
         chunks: List[str] = []
         sources: List[str] = []
         for path in files:
             text = path.read_text(encoding="utf-8", errors="ignore")
-            parts = splitter.split_text(text)
+            parts = self.chunker.split(text)
             chunks.extend(parts)
             sources.extend([str(path)] * len(parts))
         return chunks, sources
