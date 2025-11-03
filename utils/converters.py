@@ -125,10 +125,17 @@ class DocumentConverter(BaseConverter):
         return self._convert_with_docling(input_path)
 
     def convert_all(self) -> List[pathlib.Path]:
-        """Walk input_root, convert all supported files,
-        and return list of output paths."""
+        """Convert an entire directory tree to Markdown.
+
+        Walks ``input_root``, converts each supported file, and writes a
+        Markdown artifact under ``output_root`` while preserving the relative
+        structure. Existing Markdown files are copied.
+
+        Returns:
+            A list of paths to the written Markdown files.
+        """
         outputs: List[pathlib.Path] = []
-        for root, _, files in os.walk(self.input_root):
+        for root, _dirs, files in os.walk(self.input_root):
             for name in files:
                 in_path = pathlib.Path(root) / name
                 content = self.convert_file(in_path)
