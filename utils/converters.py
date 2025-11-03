@@ -63,30 +63,60 @@ class BaseConverter:
 
 
 class DocumentConverter(BaseConverter):
-    """
-    Convert all supported documents in an input directory to Markdown.
+    """Convert documents in a directory tree to Markdown.
 
-    If `docling` is installed, it will handle multi-format conversion.
-    Markdown files are simply copied to the output directory.
+    Uses ``docling`` for multi-format conversion when available and copies
+    existing Markdown files as-is. Unsupported files are skipped silently.
+
+    Attributes:
+        input_root: Root directory containing the source files.
+        output_root: Root directory where Markdown outputs will be written.
+        _converter: Internal Docling converter instance.
     """
 
     def __init__(self, input_root: pathlib.Path,
                  output_root: pathlib.Path) -> None:
+        """Initialize the converter.
+
+        Args:
+            input_root: Root directory to scan for input files.
+            output_root: Root directory where converted Markdown files are
+                written, preserving the relative structure of ``input_root``.
+        """
         self.input_root = pathlib.Path(input_root)
         self.output_root = pathlib.Path(output_root)
 
         self._converter = _DoclingConverter() if _DoclingConverter else None
 
     def _convert_with_docling(self, path: pathlib.Path) -> Optional[str]:
+        """Convert a file using Docling.
+
+        Args:
+            path: File to convert.
+
+        Returns:
+            The Markdown text on success, otherwise ``None`` on failure.
+        """
         try:
             result = self._converter.convert(str(path))
             return result.document.export_to_markdown()
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             print(f"Conversion failed for {path}: {exc}")
             return None
 
     def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
-        """Convert or copy a single file to Markdown text."""
+        """Convert or copy a single file to Markdown.
+
+        If the file is already Markdown, the text is returned directly. If the
+        Docling backend is not available, non-Markdown files are skipped.
+
+        Args:
+            input_path: Path to the input file.
+
+        Returns:
+            The Markdown text if conversion or copy succeeds, otherwise
+            ``None``.
+        """
         ext = input_path.suffix.lower()
         if ext == ".md":
             return input_path.read_text(encoding="utf-8", errors="ignore")
