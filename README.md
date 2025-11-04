@@ -72,7 +72,7 @@ uv run python -m utils.indexer
 ```
 
 ## Roadmap
-- [ ] Support for PDF, DOCX, and TXT sources
+- [ ] Management conversion per file type
 - [ ] Streamlit web interface for local querying
 - [ ] Docker container for deployment
 - [ ] Incremental indexing
