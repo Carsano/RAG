@@ -123,10 +123,6 @@ class DocumentConverter(BaseConverter):
 
         Returns Markdown text or None when OCR backend is unavailable.
         """
-        if _pdf2img is None or _tesseract is None:
-            self.logger.warning("OCR fallback unavailable: "
-                                "pdf2image/pytesseract not installed")
-            return None
         try:
             pages = _pdf2img(str(path))
             md_pages = []
