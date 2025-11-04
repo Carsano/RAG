@@ -13,6 +13,12 @@ from typing import List, Optional
 from docling.document_converter import DocumentConverter as _DoclingConverter
 from utils.logger import Logger
 
+# Optional OCR fallback for image-only PDFs
+
+from pdf2image import convert_from_path as _pdf2img
+import pytesseract as _tesseract
+import re
+
 
 class BaseConverter:
     """Abstract base class for file-to-Markdown converters.
@@ -93,6 +99,45 @@ class DocumentConverter(BaseConverter):
             f"Initialized DocumentConverter | input_root={self.input_root}"
             f" | output_root={self.output_root}"
         )
+        self.logger.info("OCR fallback available: pdf2image + "
+                         "Tesseract detected")
+
+    def _text_density_low(self, text: str, min_chars: int = 600,
+                          min_words: int = 120) -> bool:
+        """Heuristic: detect near-empty or image-only extraction results.
+
+        Returns True when Markdown likely lacks true text.
+        """
+        if not text:
+            return True
+        # Count alphanumeric characters and words
+        alnum = len(re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ0-9]", text))
+        words = len(re.findall(r"\b\w+\b", text))
+        # Very low signal or huge image markdown with few words
+        if alnum < min_chars or words < min_words:
+            return True
+        return False
+
+    def _ocr_pdf(self, path: pathlib.Path) -> Optional[str]:
+        """Fallback OCR for image-only PDFs using pdf2image + Tesseract.
+
+        Returns Markdown text or None when OCR backend is unavailable.
+        """
+        if _pdf2img is None or _tesseract is None:
+            self.logger.warning("OCR fallback unavailable: "
+                                "pdf2image/pytesseract not installed")
+            return None
+        try:
+            pages = _pdf2img(str(path))
+            md_pages = []
+            for idx, img in enumerate(pages, start=1):
+                text = _tesseract.image_to_string(img)
+                md_pages.append(f"\n\n# Page {idx}\n\n{text.strip()}\n")
+            ocr_md = "".join(md_pages).strip()
+            return ocr_md if ocr_md else None
+        except Exception as exc:  # pragma: no cover
+            self.logger.error(f"OCR fallback failed for {path}: {exc}")
+            return None
 
     def _convert_with_docling(self, path: pathlib.Path) -> Optional[str]:
         """Convert a file using Docling.
@@ -105,9 +150,26 @@ class DocumentConverter(BaseConverter):
         """
         try:
             result = self._converter.convert(str(path))
-            return result.document.export_to_markdown()
+            md = result.document.export_to_markdown()
+            # If PDF and text density is low, try OCR fallback
+            if path.suffix.lower() == ".pdf" and self._text_density_low(md):
+                self.logger.info(f"Low text density detected in {path.name}; "
+                                 f"attempting OCR fallback")
+                ocr_md = self._ocr_pdf(path)
+                if ocr_md and not self._text_density_low(ocr_md,
+                                                         min_chars=300,
+                                                         min_words=60):
+                    self.logger.info(f"OCR fallback succeeded for {path.name}")
+                    return ocr_md
+                else:
+                    self.logger.warning(f"OCR fallback yielded low text or "
+                                        f"failed for {path.name}; "
+                                        f"keeping Docling output")
+            return md
         except Exception as exc:  # pragma: no cover
             self.logger.error(f"Conversion failed for {path}: {exc}")
+            if path.suffix.lower() == ".pdf":
+                return self._ocr_pdf(path)
             return None
 
     def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
