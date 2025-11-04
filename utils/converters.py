@@ -135,6 +135,62 @@ class DocumentConverter(BaseConverter):
             self.logger.error(f"OCR fallback failed for {path}: {exc}")
             return None
 
+    def _export_pdf_pages(self, pdf_path: pathlib.Path,
+                          md_out_path: pathlib.Path) -> list[pathlib.Path]:
+        """Render PDF pages to PNGs next to the future MD file.
+
+        Returns a list of image paths.
+        """
+        if _pdf2img is None:
+            self.logger.warning("Cannot export PDF pages: "
+                                "pdf2image not installed")
+            return []
+        asset_dir = md_out_path.parent / f"{md_out_path.stem}_assets"
+        asset_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            pages = _pdf2img(str(pdf_path))
+        except Exception as exc:  # pragma: no cover
+            self.logger.error(f"pdf2image failed for {pdf_path}: {exc}")
+            return []
+        out_paths: list[pathlib.Path] = []
+        for i, img in enumerate(pages, start=1):
+            out_path = asset_dir / f"page_{i:03d}.png"
+            try:
+                img.save(out_path)
+                out_paths.append(out_path)
+            except Exception as exc:  # pragma: no cover
+                self.logger.error(f"Saving page image failed: {out_path}"
+                                  f" | {exc}")
+        return out_paths
+
+    def _replace_image_placeholders(self, md: str,
+                                    md_out_path: pathlib.Path,
+                                    images: list[pathlib.Path]) -> str:
+        """Replace '<!-- image -->' occurrences with Markdown image links."""
+        if not images:
+            return md
+        rel_links = [
+            os.path.relpath(p, md_out_path.parent)
+            for p in images
+        ]
+        placeholder = "<!-- image -->"
+        parts = md.split(placeholder)
+        if len(parts) == 1:
+            return md
+        rebuilt = []
+        for idx, part in enumerate(parts):
+            rebuilt.append(part)
+            if idx < len(parts) - 1:
+                link_idx = min(idx, len(rel_links) - 1)
+                rebuilt.append(f"![page {link_idx+1}]({rel_links[link_idx]})")
+        return "".join(rebuilt)
+
+    def _planned_md_path(self, input_path: pathlib.Path) -> pathlib.Path:
+        """Compute the markdown path that save_markdown() will write to."""
+        relative_path = os.path.relpath(input_path, self.input_root)
+        return self.output_root / pathlib.Path(relative_path
+                                               ).with_suffix(".md")
+
     def _convert_with_docling(self, path: pathlib.Path) -> Optional[str]:
         """Convert a file using Docling.
 
@@ -161,11 +217,36 @@ class DocumentConverter(BaseConverter):
                     self.logger.warning(f"OCR fallback yielded low text or "
                                         f"failed for {path.name}; "
                                         f"keeping Docling output")
+            # Replace Docling image placeholders with exported PDF page images
+            if path.suffix.lower() == ".pdf" and "<!-- image -->" in md:
+                md_out_path = self._planned_md_path(path)
+                page_imgs = self._export_pdf_pages(path, md_out_path)
+                if page_imgs:
+                    before = md
+                    md = self._replace_image_placeholders(md,
+                                                          md_out_path,
+                                                          page_imgs)
+                    if md != before:
+                        self.logger.info(f"Replaced image placeholders with "
+                                         f"{len(page_imgs)} page images "
+                                         f"for {path.name}")
+                else:
+                    self.logger.warning(f"No page images exported; "
+                                        f"leaving placeholders in {path.name}")
             return md
         except Exception as exc:  # pragma: no cover
             self.logger.error(f"Conversion failed for {path}: {exc}")
             if path.suffix.lower() == ".pdf":
-                return self._ocr_pdf(path)
+                ocr_md = self._ocr_pdf(path)
+                if ocr_md:
+                    # Even with OCR, inject page images if possible
+                    md_out_path = self._planned_md_path(path)
+                    page_imgs = self._export_pdf_pages(path, md_out_path)
+                    if page_imgs:
+                        ocr_md = self._replace_image_placeholders(ocr_md,
+                                                                  md_out_path,
+                                                                  page_imgs)
+                return ocr_md
             return None
 
     def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
@@ -228,7 +309,7 @@ class DocumentConverter(BaseConverter):
         self.logger.info(
             f"Conversion summary | total={copied + converted + skipped}"
             f" | converted={converted}"
-            f"| copied={copied} | skipped={skipped}"
+            f" | copied={copied} | skipped={skipped}"
         )
         return outputs
 
