@@ -59,6 +59,23 @@ uv run python -m utils.indexer
 │       ├── all_chunks.json
 │       ├── all_chunks.pkl
 │       └── faiss_index.idx
+├── interface/
+│   └── adapters/
+│   │   ├── faiss_store.py
+│   │   └── mistral_client.py
+│   ├── core/
+│   │   ├── config.py
+│   │   └── types.py
+│   ├── ports/
+│   │   ├── llm.py
+│   │   └── vector_store.py
+│   ├── services/
+│   │   ├── intent_classifier.py
+│   │   ├── prompting.py
+│   │   └── rag_chat.py
+│   ├── ui/
+│   │   └── chat_page.py
+│   └── app.py
 ├── logs/
 ├── pyproject.toml
 ├── README.md
