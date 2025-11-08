@@ -44,7 +44,7 @@ uv sync
 ### Usage
 Run the indexer to embed and build the FAISS index:
 ```bash
-uv run streamlit -m src.rag.adapters.cli.app.py
+uv run streamlit run src/rag/adapters/cli/app.py
 ```
 
 
