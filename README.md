@@ -77,12 +77,6 @@ uv run python -m utils.indexer
 ├── logs/
 ├── pyproject.toml
 ├── README.md
-├── utils/
-│   ├── chunkers.py
-│   ├── converters.py
-│   ├── embedders.py
-│   ├── indexer.py
-│   └── logger.py
 └── uv.lock
 ```
 
