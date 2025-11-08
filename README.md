@@ -61,19 +61,19 @@ uv run python -m utils.indexer
 │       └── faiss_index.idx
 ├── src/
 │   └── rag/
-│       ├── adapters/ # Interface between application and outside world
-│       │   ├── cli/
-│       │   └── ui/
-│       ├── application/ # Business logic for the RAG application.
-│       │   ├── ports/
-│       │   └── use_cases/
-│       └── infrastructure/ # Concrete implementations.
-│           ├── chunking/
-│           ├── config/
-│           ├── converters/
-│           ├── llm/
-│           ├── logging/
-│           └── vectorstores/
+│       ├── adapters/            # Input/output layer. Everything that interacts with the outside world
+│       │   ├── cli/             # Command-line interface (indexing, chat, etc.)
+│       │   └── ui/              # User interface (Streamlit or similar)
+│       ├── application/         # Core business logic for the RAG system.
+│       │   ├── ports/           # Abstract interfaces (contracts) between the app and infrastructure.
+│       │   └── use_cases/       # Concrete orchestrations: build_index, retrieve, chat.
+│       └── infrastructure/      # Technical implementations.
+│           ├── chunking/        # Splits documents into chunks.
+│           ├── config/          # Configuration and environment management.
+│           ├── converters/      # Converts input files (PDF, Markdown, etc.) into text.
+│           ├── llm/             # LLM clients and embedding generators (Mistral, etc.)
+│           ├── logging/         # Logging configuration and output format.
+│           └── vectorstores/    # Vector databases (FAISS, etc.)
 ├── logs/
 ├── pyproject.toml
 ├── README.md
