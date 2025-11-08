@@ -189,7 +189,12 @@ class LoggerBuilder:
         Returns:
             Path: Path object pointing to the logs root directory.
         """
-        return Path(__file__).resolve().parent.parent / "logs"
+        here = Path(__file__).resolve()
+        for parent in here.parents:
+            if (parent / "pyproject.toml").exists() or (parent / ".git"
+                                                        ).exists():
+                return (parent / "logs")
+        return here.parents[-1] / "logs"
 
     @staticmethod
     def _ensure_dir(p: Path) -> Path:
