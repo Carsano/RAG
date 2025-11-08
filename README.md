@@ -44,7 +44,7 @@ uv sync
 ### Usage
 Run the indexer to embed and build the FAISS index:
 ```bash
-uv run python -m utils.indexer
+uv run streamlit -m src.rag.adapters.cli.app.py
 ```
 
 
@@ -59,32 +59,24 @@ uv run python -m utils.indexer
 │       ├── all_chunks.json
 │       ├── all_chunks.pkl
 │       └── faiss_index.idx
-├── interface/
-│   └── adapters/
-│   │   ├── faiss_store.py
-│   │   └── mistral_client.py
-│   ├── core/
-│   │   ├── config.py
-│   │   └── types.py
-│   ├── ports/
-│   │   ├── llm.py
-│   │   └── vector_store.py
-│   ├── services/
-│   │   ├── intent_classifier.py
-│   │   ├── prompting.py
-│   │   └── rag_chat.py
-│   ├── ui/
-│   │   └── chat_page.py
-│   └── app.py
+├── src/
+│   └── rag/
+│       ├── adapters/            # Input/output layer. Everything that interacts with the outside world
+│       │   ├── cli/             # Command-line interface (indexing, chat, etc.)
+│       │   └── ui/              # User interface (Streamlit or similar)
+│       ├── application/         # Core business logic for the RAG system.
+│       │   ├── ports/           # Abstract interfaces (contracts) between the app and infrastructure.
+│       │   └── use_cases/       # Concrete orchestrations: build_index, retrieve, chat.
+│       └── infrastructure/      # Technical implementations.
+│           ├── chunking/        # Splits documents into chunks.
+│           ├── config/          # Configuration and environment management.
+│           ├── converters/      # Converts input files (PDF, Markdown, etc.) into text.
+│           ├── llm/             # LLM clients and embedding generators (Mistral, etc.)
+│           ├── logging/         # Logging configuration and output format.
+│           └── vectorstores/    # Vector databases (FAISS, etc.)
 ├── logs/
 ├── pyproject.toml
 ├── README.md
-├── utils/
-│   ├── chunkers.py
-│   ├── converters.py
-│   ├── embedders.py
-│   ├── indexer.py
-│   └── logger.py
 └── uv.lock
 ```
 

@@ -6,8 +6,8 @@ chat completions and text embeddings.
 
 import os
 from typing import List
-from core.types import LLMMessage
-from ports.llm import LLM
+from src.rag.infrastructure.config.types import LLMMessage
+from src.rag.application.ports.llm import LLM
 from mistralai import Mistral
 
 

@@ -11,7 +11,7 @@ import pathlib
 from typing import List, Optional
 
 from docling.document_converter import DocumentConverter as _DoclingConverter
-from utils.logger import Logger
+from src.rag.infrastructure.logging.logger import Logger
 
 # Optional OCR fallback for image-only PDFs
 
