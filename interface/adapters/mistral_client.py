@@ -25,8 +25,8 @@ class MistralLLM(LLM):
         client (Mistral): The injected Mistral API client instance.
     """
 
-    def __init__(self, chat_model: str, embed_model: str,
-                 completion_args: dict, client: Mistral | None = None):
+    def __init__(self, chat_model: str, completion_args: dict,
+                 client: Mistral | None = None):
         """
         Initialize the MistralLLM client with specified models and args.
 
@@ -41,7 +41,6 @@ class MistralLLM(LLM):
             None
         """
         self.chat_model = chat_model
-        self.embed_model = embed_model
         self.args = completion_args or {}
         self.client = client or Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
 
