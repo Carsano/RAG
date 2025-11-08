@@ -340,3 +340,76 @@ class Logger:
             msg (str): The message to log.
         """
         self.logger.critical(msg)
+
+
+class AppLogger(Logger):
+    """Logger dedicated to the application with a distinct log file.
+
+    Implements a singleton pattern to provide a single application
+    logger instance.
+
+    Attributes:
+        _instance (AppLogger | None): Singleton instance of AppLogger.
+    """
+    _instance = None
+
+    def _initialize(self, name: str = "app", log_file: str | None = None):
+        """Initialize the application logger with appropriate handlers.
+
+        Args:
+            name (str): Logger name.
+            log_file (str | None): Optional explicit log file path.
+        """
+        self.logger = (
+            LoggerBuilder()
+            .name("app")
+            .subdir("")
+            .prefix("App_logs")
+            .console(True)
+            .build()
+        )
+
+
+class UsageLogger(Logger):
+    """Logger dedicated to usage tracking, isolated from the main logger.
+
+    Implements a singleton pattern to provide a single usage logger instance.
+
+    Attributes:
+        _instance (UsageLogger | None): Singleton instance of UsageLogger.
+    """
+    _instance = None
+
+    def _initialize(self, name: str = "usage", log_file: str | None = None):
+        """Initialize the usage logger with appropriate handlers.
+
+        Args:
+            name (str): Logger name.
+            log_file (str | None): Optional explicit log file path.
+        """
+        self.logger = (
+            LoggerBuilder()
+            .name("usage")
+            .subdir("usages")
+            .prefix("Usages_logs")
+            .console(False)
+            .build()
+        )
+
+
+def get_app_logger():
+    """Return the singleton instance of AppLogger.
+
+    Returns:
+        AppLogger: Logger configured for general application logging.
+    """
+    return AppLogger("app")
+
+
+def get_usage_logger():
+    """Return the singleton instance of UsageLogger.
+
+    Returns:
+        UsageLogger: Logger configured for tracking usage events.
+    """
+    return UsageLogger("usage")
