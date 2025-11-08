@@ -363,7 +363,7 @@ class AppLogger(Logger):
         self.logger = (
             LoggerBuilder()
             .name("app")
-            .subdir("")
+            .subdir("app")
             .prefix("App_logs")
             .console(True)
             .build()

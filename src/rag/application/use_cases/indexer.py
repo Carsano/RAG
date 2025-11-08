@@ -18,7 +18,7 @@ import faiss
 from src.rag.infrastructure.chunking.chunkers import Chunker
 from src.rag.infrastructure.chunking.chunkers import MarkdownTagChunker
 from src.rag.application.ports.embedders import Embedder, MistralEmbedder
-from src.rag.infrastructure.logging.logger import Logger
+from src.rag.infrastructure.logging.logger import get_app_logger
 
 
 class Indexer:
@@ -132,7 +132,7 @@ class Indexer:
         self.embeddings_list: List[List[float]] = []
         self.valid_sources: List[str] = []
         self.index: Optional[faiss.Index] = None
-        self.logger = Logger("indexer")
+        self.logger = get_app_logger()
 
     def _load_resume_state(self) -> None:
         """

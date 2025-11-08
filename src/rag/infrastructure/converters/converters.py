@@ -11,7 +11,7 @@ import pathlib
 from typing import List, Optional
 
 from docling.document_converter import DocumentConverter as _DoclingConverter
-from src.rag.infrastructure.logging.logger import Logger
+from src.rag.infrastructure.logging.logger import get_app_logger
 
 # Optional OCR fallback for image-only PDFs
 
@@ -92,7 +92,7 @@ class DocumentConverter(BaseConverter):
         """
         self.input_root = pathlib.Path(input_root)
         self.output_root = pathlib.Path(output_root)
-        self.logger = Logger(name="converters")
+        self.logger = get_app_logger()
 
         self._converter = _DoclingConverter() if _DoclingConverter else None
         self.logger.info(
@@ -320,7 +320,7 @@ if __name__ == "__main__":
         output_root=pathlib.Path("./data/clean_md_database"),
     )
     written = converter.convert_all()
-    Logger(name="converters").info(
+    get_app_logger.info(
         f"Converted {len(written)} documents to Markdown"
         f" → {pathlib.Path("./data/clean_md_database").resolve()}"
     )
