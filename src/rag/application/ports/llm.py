@@ -3,7 +3,7 @@ Abstract LLM interface.
 Defines methods for chat completion and text embeddings.
 """
 from typing import List, Protocol
-from core.types import LLMMessage
+from rag.infrastructure.config.types import LLMMessage
 
 
 class LLM(Protocol):

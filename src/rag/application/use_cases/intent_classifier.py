@@ -5,8 +5,8 @@ Decides whether a user question should use RAG or plain chat. Uses an LLM
 to classify, with a keyword fallback if the LLM call fails.
 """
 
-from core.types import LLMMessage
-from interface.ports.llm import LLM
+from rag.infrastructure.config.types import LLMMessage
+from rag.application.ports.llm import LLM
 
 SYSTEM: LLMMessage = {
             "role": "system",

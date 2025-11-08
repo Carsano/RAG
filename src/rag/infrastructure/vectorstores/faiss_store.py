@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 import faiss
 from typing import List, Tuple
-from ports.vector_store import VectorStore
+from rag.application.ports.vector_store import VectorStore
 import streamlit as st
 
 

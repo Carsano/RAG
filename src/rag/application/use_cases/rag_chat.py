@@ -6,7 +6,8 @@ from __future__ import annotations
 from typing import List, Any
 from ports.llm import LLM
 from ports.vector_store import VectorStore
-from services.prompting import build_system_prompt, clamp_dialog
+from rag.application.use_cases.prompting import build_system_prompt
+from rag.application.use_cases.prompting import clamp_dialog
 
 
 class RAGChatService:
