@@ -17,3 +17,11 @@ dependencies = [
     "pytesseract>=0.3.13",
     "streamlit>=1.51.0",
 ]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["utils", "core", "ports", "adapters", "services", "ui", "interface"]
