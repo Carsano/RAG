@@ -9,6 +9,7 @@ from typing import TypedDict, Literal
 from src.rag.infrastructure.config.types import Messages
 import streamlit as st
 from src.rag.application.use_cases.rag_chat import RAGChatService
+from src.rag.infrastructure.logging.logger import get_usage_logger
 
 Role = Literal["system", "user", "assistant"]
 
@@ -28,6 +29,7 @@ class ChatPage:
     def __init__(self, service: RAGChatService, title: str) -> None:
         self.service = service
         self.title = title
+        self.usage_logger = get_usage_logger()
 
     # ---------- state ----------
     def _ensure_state(self) -> None:
@@ -64,8 +66,12 @@ class ChatPage:
                 reply = self.service.answer(
                     history=st.session_state.messages, question=prompt
                 )
+                # log successful interaction
+                self.usage_logger.info(f"User: {prompt} | Response: {reply}")
             except Exception as e:
                 reply = f"Erreur lors de la génération de la réponse : {e}"
+                # log error case
+                self.usage_logger.error(f"User: {prompt} | Error: {e}")
             placeholder.write(reply)
 
         self._append("assistant", reply)

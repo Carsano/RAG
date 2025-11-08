@@ -11,9 +11,13 @@ from src.rag.application.use_cases.intent_classifier import IntentClassifier
 from src.rag.adapters.ui.chat_page import ChatPage
 
 from src.rag.application.ports.embedders import MistralEmbedder
+from src.rag.infrastructure.logging.logger import get_usage_logger
 
 
 def main():
+    usage_logger = get_usage_logger()
+    usage_logger.info("CLI started by user")
+
     cfg = AppConfig.load()
 
     llm = MistralLLM(chat_model=cfg.chat_model,
@@ -30,6 +34,8 @@ def main():
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
     )
+
+    usage_logger.info("RAGChatService initialized")
 
     ChatPage(service=svc, title="Assistant Virtuel de la Mairie").render()
 
