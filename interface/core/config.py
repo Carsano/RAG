@@ -39,10 +39,10 @@ class AppConfig:
     embed_model: str = os.getenv("MISTRAL_EMBED_MODEL", "mistral-embed")
     completion_args: dict = None
     system_prompt: str = SYSTEM_PROMPT
-
-    # chemins index
-    faiss_index_path: str = os.getenv("FAISS_INDEX_PATH", "faiss_index.idx")
-    chunks_path: str = os.getenv("CHUNKS_PATH", "all_chunks.pkl")
+    faiss_index_path: str = os.getenv("FAISS_INDEX_PATH",
+                                      "data/indexes/faiss_index.idx")
+    chunks_path: str = os.getenv("CHUNKS_PATH",
+                                 "data/indexes/all_chunks.pkl")
 
     @staticmethod
     def load() -> "AppConfig":
