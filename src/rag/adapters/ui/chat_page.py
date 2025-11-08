@@ -6,9 +6,9 @@ No business logic here.
 from __future__ import annotations
 
 from typing import TypedDict, Literal
-from core.types import Messages
+from src.rag.infrastructure.config.types import Messages
 import streamlit as st
-from services.rag_chat import RAGChatService
+from src.rag.application.use_cases.rag_chat import RAGChatService
 
 Role = Literal["system", "user", "assistant"]
 

@@ -3,12 +3,12 @@ app interface module.
 Contains the main applicaiton logic and integration of components.
 """
 
-from infrastructure.config.config import AppConfig
-from infrastructure.llm.mistral_client import MistralLLM
-from infrastructure.vectorstores import FaissStore
-from rag.application.use_cases.rag_chat import RAGChatService
-from rag.application.use_cases.intent_classifier import IntentClassifier
-from ui.chat_page import ChatPage
+from src.rag.infrastructure.config.config import AppConfig
+from src.rag.infrastructure.llm.mistral_client import MistralLLM
+from src.rag.infrastructure.vectorstores.faiss_store import FaissStore
+from src.rag.application.use_cases.rag_chat import RAGChatService
+from src.rag.application.use_cases.intent_classifier import IntentClassifier
+from src.rag.adapters.ui.chat_page import ChatPage
 
 from src.rag.application.ports.embedders import MistralEmbedder
 

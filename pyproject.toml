@@ -24,4 +24,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["utils", "core", "ports", "adapters", "services", "ui", "interface"]
+include = ["src", "rag", "adapters", "cli", "ui", "application", "ports", "use_cases", "infrastructure", "chunking", "config", "converters", "llm", "logging", "vectorstores"]

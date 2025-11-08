@@ -4,10 +4,10 @@ Contains methods for managing chat interactions with RAG.
 """
 from __future__ import annotations
 from typing import List, Any
-from ports.llm import LLM
-from ports.vector_store import VectorStore
-from rag.application.use_cases.prompting import build_system_prompt
-from rag.application.use_cases.prompting import clamp_dialog
+from src.rag.application.ports.llm import LLM
+from src.rag.application.ports.vector_store import VectorStore
+from src.rag.application.use_cases.prompting import build_system_prompt
+from src.rag.application.use_cases.prompting import clamp_dialog
 
 
 class RAGChatService:
