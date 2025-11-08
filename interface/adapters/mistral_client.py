@@ -8,7 +8,6 @@ import os
 from typing import List
 from core.types import LLMMessage
 from ports.llm import LLM
-from utils.embedders import embed_text as utils_embed_text
 from mistralai import Mistral
 
 
@@ -70,15 +69,3 @@ class MistralLLM(LLM):
             top_p=self.args.get("top_p", 0.22),
         )
         return resp.choices[0].message.content
-
-    def embed(self, text: str) -> list[float]:
-        """
-        Compute an embedding vector for the given text using the local utility.
-
-        Args:
-            text (str): The input text to embed.
-
-        Returns:
-            list[float]: The embedding vector as a list of floats.
-        """
-        return list(utils_embed_text(text))
