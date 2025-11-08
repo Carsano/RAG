@@ -6,7 +6,15 @@ to classify, with a keyword fallback if the LLM call fails.
 """
 
 from core.types import LLMMessage
-from interface.ports.llm import LLM  # adjust import if your project uses
+from interface.ports.llm import LLM
+
+SYSTEM: LLMMessage = {
+            "role": "system",
+            "content": (
+                "Classifie en RAG ou CHAT. RAG = nécessite documents. "
+                "CHAT = réponse sans recherche. Réponds par un seul mot."
+            ),
+        }
 
 
 class IntentClassifier:
@@ -31,23 +39,7 @@ class IntentClassifier:
         Returns:
             str: 'rag' if retrieval is needed, 'chat' otherwise.
         """
-        sys_msg: LLMMessage = {
-            "role": "system",
-            "content": (
-                "Classifie en RAG ou CHAT. RAG = nécessite documents. "
-                "CHAT = réponse sans recherche. Réponds par un seul mot."
-            ),
-        }
+
         user_msg: LLMMessage = {"role": "user", "content": question}
-        try:
-            out = self.llm.chat([sys_msg, user_msg]).strip().lower()
-            return "rag" if "rag" in out else "chat"
-        except Exception:
-            q = question.lower()
-            is_rag = any(
-                k in q for k in [
-                    "pièce", "document", "démarche", "horaires",
-                    "rdv", "procédure",
-                ]
-            )
-            return "rag" if is_rag else "chat"
+        out = self.llm.chat([SYSTEM, user_msg]).strip().lower()
+        return "rag" if "rag" in out else "chat"
