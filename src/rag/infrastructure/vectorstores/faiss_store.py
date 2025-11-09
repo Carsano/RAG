@@ -7,9 +7,11 @@ import os
 import pickle
 import numpy as np
 import faiss
+import json
 from typing import List, Tuple
 from src.rag.application.ports.vector_store import VectorStore
 import streamlit as st
+from pathlib import Path
 
 
 @st.cache_resource(show_spinner=False)
@@ -54,6 +56,12 @@ class FaissStore(VectorStore):
         """
         self.index, self.documents = _load_index_and_docs(index_path,
                                                           chunks_pickle_path)
+        meta_path = Path(index_path).with_suffix(".meta.json")
+        if meta_path.exists():
+            with open(meta_path, "r", encoding="utf-8") as f:
+                self.meta = json.load(f)
+        else:
+            self.meta = {}
 
     def search(self, query_embedding: list[float],
                k: int = 10) -> Tuple[list[int], list[float]]:
@@ -85,3 +93,11 @@ class FaissStore(VectorStore):
         return [
             self.documents[i] for i in ids if 0 <= i < len(self.documents)
             ]
+
+    def get_index_fingerprint(self) -> dict:
+        """Return the embedder fingerprint stored with the index."""
+        return self.meta.get("embedder", {})
+
+    def get_dim(self) -> int:
+        """Return embedding dimensionality from meta.json if available."""
+        return int(self.meta.get("embedder", {}).get("dim", 0))
