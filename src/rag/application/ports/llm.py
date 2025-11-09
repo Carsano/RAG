@@ -8,3 +8,4 @@ from src.rag.infrastructure.config.types import LLMMessage
 
 class LLM(Protocol):
     def chat(self, messages: List[LLMMessage]) -> str: ...
+    """Generate a chat completion from a list of messages."""
