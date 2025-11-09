@@ -3,7 +3,7 @@ Mistral client adapter module.
 Implements the abstract LLM interface using the Mistral API to provide
 chat completions and text embeddings.
 """
-
+# src/rag/infrastructure/llm/mistral_client.py
 import os
 from typing import List
 from src.rag.infrastructure.config.types import LLMMessage
@@ -25,7 +25,11 @@ class MistralLLM(LLM):
         client (Mistral): The injected Mistral API client instance.
     """
 
-    def __init__(self, chat_model: str, completion_args: dict,
+    def __init__(self, chat_model: str,
+                 completion_args: dict = {
+                     "temperature": 0.2,
+                     "max_tokens": 300,
+                     "top_p": 0.22},
                  client: Mistral | None = None):
         """
         Initialize the MistralLLM client with specified models and args.
@@ -41,7 +45,7 @@ class MistralLLM(LLM):
             None
         """
         self.chat_model = chat_model
-        self.args = completion_args or {}
+        self.args = completion_args
         self.client = client or Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
 
     def chat(self, messages: List[LLMMessage]) -> str:
