@@ -11,6 +11,33 @@ from src.rag.application.ports.llm import LLM
 from mistralai import Mistral
 
 
+def _as_text(content) -> str:
+    """Normalize Mistral message.content to a plain string.
+
+    Mistral SDK may return a str, a dict {"type":"text","text":...},
+    or a list of blocks.
+    This function returns a stable string for all cases.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, dict):
+        if content.get("type") == "text":
+            return str(content.get("text", ""))
+        return str(content)
+    if isinstance(content, (list, tuple)):
+        parts = []
+        for blk in content:
+            if isinstance(blk, dict) and blk.get("type") == "text":
+                parts.append(str(blk.get("text", "")))
+            elif (isinstance(blk, (list, tuple))
+                  and len(blk) == 2 and blk[0] == "text"):
+                parts.append(str(blk[1]))
+            else:
+                parts.append(str(blk))
+        return "\n".join(p for p in parts if p).strip()
+    return str(content)
+
+
 class MistralLLM(LLM):
     """
     Mistral LLM client implementing chat and embedding.
@@ -66,7 +93,7 @@ class MistralLLM(LLM):
             top_p=top_p,
             stop=stop,
         )
-        return resp.choices[0].message.content
+        return _as_text(resp.choices[0].message.content)
 
     def generate(
         self,
