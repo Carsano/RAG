@@ -242,7 +242,7 @@ class LoggerBuilder:
             logging.Handler: Configured FileHandler instance.
         """
         h = logging.FileHandler(path, encoding="utf-8")
-        h.setLevel(logging.INFO)
+        h.setLevel(logging.NOTSET)
         h.setFormatter(fmt)
         return h
 
@@ -257,7 +257,7 @@ class LoggerBuilder:
             logging.Handler: Configured StreamHandler instance for stdout.
         """
         h = logging.StreamHandler(sys.stdout)
-        h.setLevel(logging.INFO)
+        h.setLevel(logging.NOTSET)
         h.setFormatter(fmt)
         return h
 
@@ -398,6 +398,7 @@ class UsageLogger(Logger):
             .subdir("usages")
             .prefix("Usages_logs")
             .console(False)
+            .level(logging.DEBUG)
             .build()
         )
 

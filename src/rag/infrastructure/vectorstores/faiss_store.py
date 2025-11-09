@@ -8,6 +8,8 @@ import pickle
 import numpy as np
 import faiss
 import json
+from logging import Logger
+from src.rag.infrastructure.logging.logger import get_usage_logger
 from typing import List, Tuple
 from src.rag.application.ports.vector_store import VectorStore
 import streamlit as st
@@ -47,7 +49,8 @@ class FaissStore(VectorStore):
         documents (List[str]): List of document chunks corresponding to index.
     """
 
-    def __init__(self, index_path: str, chunks_pickle_path: str):
+    def __init__(self, index_path: str, chunks_pickle_path: str,
+                 usage_logger: Logger | None = None):
         """Initialize the FaissStore by loading index and document chunks.
 
         Args:
@@ -62,9 +65,10 @@ class FaissStore(VectorStore):
                 self.meta = json.load(f)
         else:
             self.meta = {}
+        self.log = usage_logger or get_usage_logger()
 
     def search(self, query_embedding: list[float],
-               k: int = 10) -> Tuple[list[int], list[float]]:
+               k: int = 1) -> Tuple[list[int], list[float]]:
         """Search the Faiss index for the nearest neighbors to a query vector.
 
         Args:
@@ -79,6 +83,8 @@ class FaissStore(VectorStore):
         """
         q = np.array([np.array(query_embedding, dtype=np.float32)])
         distances, indices = self.index.search(q, k)
+        self.log.debug(f"Faiss search - indices: {indices}, "
+                       f"distances: {distances}")
         return indices[0].tolist(), distances[0].tolist()
 
     def get_chunks(self, ids: List[int]) -> List[str]:

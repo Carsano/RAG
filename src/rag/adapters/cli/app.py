@@ -22,22 +22,28 @@ def main():
     usage_logger.info("CLI started by user")
 
     cfg = AppConfig.load()
-
+    usage_logger.info("Config loaded")
     llm = MistralLLM(model_name=cfg.chat_model,
                      temperature=cfg.completion_args.get("temperature", 0.2),
                      max_tokens=cfg.completion_args.get("max_tokens", 300),
                      top_p=cfg.completion_args.get("top_p", 0.22))
+    usage_logger.info("LLM client initialized")
     embedder = MistralEmbedder(model=cfg.embed_model, delay=0.0)
+    usage_logger.info("Embedder initialized")
     store = FaissStore(index_path=cfg.faiss_index_path,
                        chunks_pickle_path=cfg.chunks_path)
+    usage_logger.info("Vector store initialized")
     classifier = IntentClassifier(llm=llm)
+    usage_logger.info("Intent Classifier initialized")
     retriever = VectorStoreRetriever(store=store, embedder=embedder)
+    usage_logger.info("Retriever initialized")
 
     svc = RAGChatService(
         llm=llm,
         retriever=retriever,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
+        usage_logger=usage_logger,
     )
 
     usage_logger.info("RAGChatService initialized")

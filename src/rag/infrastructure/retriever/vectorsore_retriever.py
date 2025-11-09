@@ -3,6 +3,8 @@ Retriever implementation using a vector store.
 """
 # src/rag/infrastructure/retriever/vectorstore_retriever.py
 from typing import List, Optional
+from logging import Logger
+from src.rag.infrastructure.logging.logger import get_usage_logger
 from src.rag.application.ports.retriever import Retriever
 from src.rag.application.ports.vector_store import VectorStore
 from src.rag.application.ports.embedders import Embedder
@@ -12,7 +14,8 @@ class VectorStoreRetriever(Retriever):
     def __init__(self, store: VectorStore, embedder: Embedder,
                  default_k: int = 5,
                  min_score: Optional[float] = None,
-                 allow_mismatch: bool = False):
+                 allow_mismatch: bool = False,
+                 usage_logger: Logger | None = None):
         """Initialize the VectorStoreRetriever.
 
         Args:
@@ -27,6 +30,7 @@ class VectorStoreRetriever(Retriever):
         self.embedder = embedder
         self.default_k = default_k
         self.min_score = min_score
+        self.log = usage_logger or get_usage_logger()
 
         idx_fp = getattr(self.store, "get_index_fingerprint", lambda: {})()
         idx_dim = getattr(self.store, "get_dim", lambda: 0)()
@@ -60,7 +64,9 @@ class VectorStoreRetriever(Retriever):
         """
         k = k or self.default_k
         query_emb = self.embedder.embed_query(query)
+        self.log.debug(f"search: query_emb = {query_emb}")
         ids, dists = self.store.search(query_emb, k=k)
+        self.log.debug(f"search: ids = {ids}, dists = {dists}")
         chunks = self.store.get_chunks(ids)
 
         if self.min_score is not None and len(dists) == len(chunks):
