@@ -12,6 +12,9 @@ from src.rag.adapters.ui.chat_page import ChatPage
 
 from src.rag.application.ports.embedders import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_usage_logger
+from src.rag.infrastructure.retriever.vectorsore_retriever import (
+    VectorStoreRetriever
+)
 
 
 def main():
@@ -28,11 +31,11 @@ def main():
     store = FaissStore(index_path=cfg.faiss_index_path,
                        chunks_pickle_path=cfg.chunks_path)
     classifier = IntentClassifier(llm=llm)
+    retriever = VectorStoreRetriever(store=store, embedder=embedder)
 
     svc = RAGChatService(
         llm=llm,
-        embedder=embedder,
-        store=store,
+        retriever=retriever,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
     )
