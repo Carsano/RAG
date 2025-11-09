@@ -223,6 +223,26 @@ class Indexer:
             f"Index written: {self.index_path} | "
             f"Chunks: {self.chunks_json_path} / {self.chunks_pkl_path}"
         )
+        # Write embedder metadata with a strict, explicit schema
+        name = getattr(self.embedder, "model", self.model) or "mistral-embed"
+        dim = int(embeddings.shape[1])
+        normalize = bool(getattr(self.embedder, "normalize", True))
+        pooling = getattr(self.embedder, "pooling", "mean")
+        version = getattr(self.embedder, "version", "2025-10-01")
+        meta = {
+            "embedder": {
+                "name": name,
+                "provider": "mistral",
+                "dim": dim,
+                "normalize": normalize,
+                "pooling": pooling,
+                "version": version,
+            }
+        }
+        meta_path = self.index_path.with_suffix(".meta.json")
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+        self.logger.info(f"Embedder metadata saved to {meta_path}")
 
     def _filter_by_file(self, file_path: pathlib.Path) -> int:
         """Filter in-memory items that originate from a given file.
