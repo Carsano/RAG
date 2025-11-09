@@ -71,6 +71,7 @@ uv run streamlit run src/rag/adapters/cli/app.py
 │           ├── chunking/        # Splits documents into chunks.
 │           ├── config/          # Configuration and environment management.
 │           ├── converters/      # Converts input files (PDF, Markdown, etc.) into text.
+│           ├── evaluation/      # Evaluate the answers of the RAG
 │           ├── llm/             # LLM clients and embedding generators (Mistral, etc.)
 │           ├── logging/         # Logging configuration and output format.
 │           └── vectorstores/    # Vector databases (FAISS, etc.)

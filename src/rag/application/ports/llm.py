@@ -8,8 +8,8 @@ from src.rag.infrastructure.config.types import LLMMessage
 
 
 class LLM(Protocol):
-    def __init__(self, model_name: str, temperature: float,
-                 max_tokens: int, top_p: float):
+    def __init__(self, model_name: str, temperature: float = 0.2,
+                 max_tokens: int = 300, top_p: float = 0.22):
         """
         Initialize the LLM client.
 
