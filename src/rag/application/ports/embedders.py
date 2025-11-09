@@ -44,6 +44,9 @@ class Embedder(Protocol):
             List[Optional[List[float]]]: Embeddings or None per item.
         """
 
+    def embed_query(self, text: str) -> Optional[List[float]]:
+        """Alias to match retriever expectations."""
+
     def fingerprint(self) -> dict:
         """Return a dict describing the embedder configuration.
 
