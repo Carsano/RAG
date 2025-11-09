@@ -14,7 +14,7 @@ class EvaluationSample(TypedDict):
 
 class EvaluationScores(TypedDict):
     id: str
-    metrics: dict[str, float]  # ex: {"faithfulness": 0.71, ...}
+    metrics: dict[str, float]
 
 
 class EvaluationEngine(Protocol):
