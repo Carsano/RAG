@@ -42,6 +42,7 @@ class RagasEvaluationEngine(EvaluationEngine):
             "context_recall",
             "context_precision",
         ),
+        system_prompt: str | None = None,
     ) -> None:
         """Initialize RagasEvaluationEngine.
 
@@ -53,6 +54,7 @@ class RagasEvaluationEngine(EvaluationEngine):
         self.judge_llm = judge_llm
         self.embeddings = embeddings
         self.metrics = list(metrics)
+        self.system_prompt = system_prompt
 
     def _load_ragas(self):
         """Load Ragas and related dependencies.
