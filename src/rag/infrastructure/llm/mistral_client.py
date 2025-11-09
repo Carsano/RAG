@@ -19,14 +19,15 @@ class MistralLLM(LLM):
     generating chat completions and embedding text.
 
     Attributes:
-        chat_model (str): The model name used for chat completions.
-        embed_model (str): The model name used for embeddings.
-        args (dict): Additional arguments for completion calls.
+        model_name (str): The model name used for chat completions.
+        temperature (float): Default temperature.
+        max_tokens (int): Default max tokens.
+        top_p (float): Default nucleus sampling.
         client (Mistral): The injected Mistral API client instance.
     """
 
     def __init__(self, model_name: str,
-                 temperature: float = 2,
+                 temperature: float = 0.2,
                  max_tokens: int = 300,
                  top_p: float = 0.22,
                  client: Mistral | None = None):
@@ -49,27 +50,45 @@ class MistralLLM(LLM):
         self.top_p = top_p
         self.client = client or Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
 
-    def chat(self, messages: List[LLMMessage]) -> str:
-        """
-        Generate a chat completion from a list of messages.
-
-        Args:
-            messages (List[LLMMessage]): List of messages forming the chat
-                history or prompt.
-
-        Returns:
-            str: The content string of the generated chat completion.
-
-        Raises:
-            RuntimeError: If the Mistral client is unavailable.
-        """
+    def chat(self, messages: List[LLMMessage], **kwargs) -> str:
+        """Generate a single chat completion and return its text."""
         if not self.client:
             raise RuntimeError("Client Mistral indisponible.")
+        temperature = kwargs.get("temperature", self.temperature)
+        max_tokens = kwargs.get("max_tokens", self.max_tokens)
+        top_p = kwargs.get("top_p", self.top_p)
+        stop = kwargs.get("stop")
         resp = self.client.chat.complete(
             model=self.model_name,
             messages=messages,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            stop=stop,
         )
         return resp.choices[0].message.content
+
+    def generate(
+        self,
+        prompt: str,
+        n: int = 1,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        max_tokens: int | None = None,
+        stop: List[str] | None = None,
+        **kwargs,
+    ) -> list[str]:
+        """Ragas-compatible text generation API returning n strings."""
+        messages = [{"role": "user", "content": prompt}]
+        outputs: list[str] = []
+        params = {
+            "temperature": self.temperature if temperature is None
+            else temperature,
+            "top_p": self.top_p if top_p is None else top_p,
+            "max_tokens": self.max_tokens if max_tokens is None
+            else max_tokens,
+            "stop": stop,
+        }
+        for _ in range(max(1, int(n))):
+            outputs.append(self.chat(messages, **params))
+        return outputs
