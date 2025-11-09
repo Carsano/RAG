@@ -2,6 +2,7 @@
 Faiss vector store adapter.
 Implements the abstract vector store interface using Faiss.
 """
+# src/rag/infrastructure/vectorstores/faiss_store.py
 import os
 import pickle
 import numpy as np
