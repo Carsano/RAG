@@ -5,6 +5,7 @@ This module implements a concrete `EvaluationResultsSink` that persists
 artifacts to a directory using JSON and CSV files. The class is designed to be
 simple, testable, and to comply with SOLID principles:
 """
+# src/rag/infrastructure/evaluation/csv_sink.py
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,7 +14,7 @@ import json
 import os
 from typing import Any, Mapping, Sequence
 
-from rag.application.ports.evaluation import (
+from src.rag.application.ports.evaluation import (
     EvaluationResultsSink,
     EvaluationScores,
 )
