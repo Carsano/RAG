@@ -30,7 +30,7 @@ def _load_index_and_docs(index_path: str, chunks_path: str):
         raise FileNotFoundError(f"FAISS introuvable: {index_path}")
     if not os.path.exists(chunks_path):
         raise FileNotFoundError(f"Chunks introuvables: {chunks_path}")
-    index = faiss.read_index(index_path)
+    index: faiss.Index = faiss.read_index(index_path)
     with open(chunks_path, "rb") as f:
         docs: List[str] = pickle.load(f)
     return index, docs
@@ -77,7 +77,16 @@ class FaissStore(VectorStore):
                 - indices of the nearest neighbors in the index.
                 - distances to the nearest neighbors.
         """
-        q = np.array([np.array(query_embedding, dtype=np.float32)])
+        q = np.asarray(query_embedding, dtype=np.float32)
+        # Coerce to shape (n, d)
+        if q.ndim == 1:
+            q = q.reshape(1, -1)
+        elif q.ndim > 2:
+            q = np.squeeze(q)
+            if q.ndim == 1:
+                q = q.reshape(1, -1)
+            elif q.ndim > 2:
+                q = q.reshape(-1, q.shape[-1])
         distances, indices = self.index.search(q, k)
         return indices[0].tolist(), distances[0].tolist()
 
