@@ -1,13 +1,18 @@
 """
 Ragas-based EvaluationEngine implementation.
 """
+# src/rag/infrastructure/evaluation/ragas_engine.py
 from __future__ import annotations
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
-from rag.application.ports.evaluation import EvaluationEngine
+from src.rag.application.ports.evaluation import EvaluationEngine
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import answer_relevancy, context_precision
-from ragas.metrics import context_relevancy, faithfulness
+from ragas.metrics import (
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    faithfulness
+)
 
 
 class RagasEvaluationEngine(EvaluationEngine):
@@ -17,13 +22,13 @@ class RagasEvaluationEngine(EvaluationEngine):
         judge_llm (Any): LLM compatible with the installed Ragas version.
         embeddings (Any | None): Embedding model for metrics that need it.
         metrics (Sequence[str]): Metric names: "faithfulness",
-            "answer_relevancy", "context_relevancy", "context_precision".
+        "answer_relevancy", "context_recall", "context_precision".
     """
 
     SUPPORTED_METRICS = (
         "faithfulness",
         "answer_relevancy",
-        "context_relevancy",
+        "context_recall",
         "context_precision",
     )
 
@@ -34,7 +39,7 @@ class RagasEvaluationEngine(EvaluationEngine):
         metrics: Sequence[str] = (
             "faithfulness",
             "answer_relevancy",
-            "context_relevancy",
+            "context_recall",
             "context_precision",
         ),
     ) -> None:
@@ -61,7 +66,7 @@ class RagasEvaluationEngine(EvaluationEngine):
         metric_map = {
             "faithfulness": faithfulness,
             "answer_relevancy": answer_relevancy,
-            "context_relevancy": context_relevancy,
+            "context_recall": context_recall,
             "context_precision": context_precision,
         }
         return Dataset, evaluate, metric_map
@@ -104,7 +109,7 @@ class RagasEvaluationEngine(EvaluationEngine):
         gts: List[str | None] = []
 
         for s in samples:
-            ids.append(s.get("id"))  # type: ignore[arg-type]
+            ids.append(s.get("id"))
             questions.append(str(s.get("question", "")))
             answers.append(str(s.get("predicted_answer", "")))
             ctx = s.get("contexts") or []
