@@ -25,17 +25,16 @@ class MistralLLM(LLM):
         client (Mistral): The injected Mistral API client instance.
     """
 
-    def __init__(self, chat_model: str,
-                 completion_args: dict = {
-                     "temperature": 0.2,
-                     "max_tokens": 300,
-                     "top_p": 0.22},
+    def __init__(self, model_name: str,
+                 temperature: float = 2,
+                 max_tokens: int = 300,
+                 top_p: float = 0.22,
                  client: Mistral | None = None):
         """
         Initialize the MistralLLM client with specified models and args.
 
         Args:
-            chat_model (str): Model name for chat completions.
+            model_name (str): Model name for chat completions.
             embed_model (str): Model name for text embeddings.
             completion_args (dict): Optional arguments for completion calls.
             client (Mistral | None): Optional prebuilt client. If None, a
@@ -44,8 +43,10 @@ class MistralLLM(LLM):
         Returns:
             None
         """
-        self.chat_model = chat_model
-        self.args = completion_args
+        self.model_name = model_name
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.top_p = top_p
         self.client = client or Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
 
     def chat(self, messages: List[LLMMessage]) -> str:
@@ -65,10 +66,10 @@ class MistralLLM(LLM):
         if not self.client:
             raise RuntimeError("Client Mistral indisponible.")
         resp = self.client.chat.complete(
-            model=self.chat_model,
+            model=self.model_name,
             messages=messages,
-            temperature=self.args.get("temperature", 0.2),
-            max_tokens=self.args.get("max_tokens", 300),
-            top_p=self.args.get("top_p", 0.22),
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            top_p=self.top_p,
         )
         return resp.choices[0].message.content

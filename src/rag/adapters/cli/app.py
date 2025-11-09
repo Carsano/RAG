@@ -20,8 +20,10 @@ def main():
 
     cfg = AppConfig.load()
 
-    llm = MistralLLM(chat_model=cfg.chat_model,
-                     completion_args=cfg.completion_args)
+    llm = MistralLLM(model_name=cfg.chat_model,
+                     temperature=cfg.completion_args.get("temperature", 0.2),
+                     max_tokens=cfg.completion_args.get("max_tokens", 300),
+                     top_p=cfg.completion_args.get("top_p", 0.22))
     embedder = MistralEmbedder(model=cfg.embed_model, delay=0.0)
     store = FaissStore(index_path=cfg.faiss_index_path,
                        chunks_pickle_path=cfg.chunks_path)

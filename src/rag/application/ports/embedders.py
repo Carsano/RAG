@@ -44,6 +44,13 @@ class Embedder(Protocol):
             List[Optional[List[float]]]: Embeddings or None per item.
         """
 
+    def fingerprint(self) -> dict:
+        """Return a dict describing the embedder configuration.
+
+        Returns:
+            dict: Embedder configuration details.
+        """
+
 
 class MistralEmbedder:
     """Mistral-backed embedder with simple retry and throttling.
@@ -70,6 +77,9 @@ class MistralEmbedder:
         self.client = Mistral(api_key=api_key)
         self.model = model
         self.delay = delay
+        self.dim = 1024
+        self.normalize = True
+        self.pooling = "mean"
 
     def embed(self, text: str) -> Optional[List[float]]:
         """Embed a single string with one retry on failure.
@@ -108,6 +118,33 @@ class MistralEmbedder:
             out.append(self.embed(t))
             time.sleep(self.delay)
         return out
+
+    def embed_query(self, text: str) -> Optional[List[float]]:
+        """Alias to match retriever expectations."""
+        return self.embed(text)
+
+    def fingerprint(self) -> dict:
+        """Return embedder configuration details.
+
+        Returns:
+            dict: Embedder configuration.
+        """
+        return {
+            "name": self.model,
+            "provider": "mistral",
+            "dim": self.dim,
+            "normalize": self.normalize,
+            "pooling": self.pooling
+        }
+
+    @property
+    def output_dim(self) -> int:
+        """Return embedding output dimension.
+
+        Returns:
+            int: Embedding vector dimension.
+        """
+        return self.dim
 
 
 class FakeEmbedder:
