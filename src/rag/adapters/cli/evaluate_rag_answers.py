@@ -18,6 +18,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from src.rag.infrastructure.logging.logger import get_usage_logger
 from typing import List, Mapping, MutableMapping, Sequence
 
 from src.rag.application.use_cases.rag_evaluation import RAGEvaluation
@@ -35,7 +36,7 @@ from src.rag.infrastructure.retriever.vectorsore_retriever import (
     VectorStoreRetriever
 )
 
-logger = logging.getLogger(__name__)
+logger = usage_logger = get_usage_logger()
 
 # -----------------------------
 # Parsing
@@ -236,8 +237,7 @@ def _print_summary(scores: Sequence[MutableMapping[str, object]],
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    _setup_logging(args.verbose)
-    logger.debug("Arguments: %s", vars(args))
+    logger.debug(f"Arguments: {vars(args)}")
 
     try:
         _validate_io(args)
