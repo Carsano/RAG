@@ -8,7 +8,7 @@ import pickle
 import numpy as np
 import faiss
 from typing import List, Tuple
-from src.rag.application.ports.vector_store import VectorStore
+from src.rag.application.ports.vector_store_manager import VectorStoreManager
 import streamlit as st
 
 
@@ -34,7 +34,7 @@ def _load_index_and_docs(index_path: str, chunks_path: str):
     return index, docs
 
 
-class FaissStore(VectorStore):
+class FaissStore(VectorStoreManager):
     """Faiss-based implementation of the VectorStore interface.
 
     This class manages a Faiss index and associated document chunks,
