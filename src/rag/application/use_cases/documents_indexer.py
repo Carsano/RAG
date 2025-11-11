@@ -10,6 +10,7 @@ import pathlib
 
 import numpy as np
 from src.rag.application.ports.embedders import Embedder
+from src.rag.utils.utils import get_project_root
 
 from src.rag.infrastructure.chunking.chunkers import Chunker
 from src.rag.infrastructure.chunking.chunkers import MarkdownTagChunker
@@ -100,8 +101,8 @@ class DocumentsIndexer:
         )
         self.sleep_between_calls = sleep_between_calls
 
-        # Resolve project root and ensure data/indexes exists
-        project_root = pathlib.Path(__file__).resolve().parent.parent
+        # Resolve project root and ensure data/indexes exists at repo root
+        project_root = get_project_root()
         indexes_dir = project_root / "data" / "indexes"
         indexes_dir.mkdir(parents=True, exist_ok=True)
 
