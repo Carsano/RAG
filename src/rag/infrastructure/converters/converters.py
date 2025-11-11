@@ -1,17 +1,23 @@
 """
 Document conversion utilities.
 
-This module converts heterogeneous document formats (PDF, DOCX, TXT, etc.)
-to normalized Markdown for downstream indexing.
+Converts heterogeneous document formats (PDF, DOCX, TXT, etc.) to
+normalized Markdown for downstream indexing. The design follows SOLID
+principles with small, replaceable components for OCR and page export.
 """
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
 from typing import List, Optional
 
 from docling.document_converter import DocumentConverter as _DoclingConverter
+from src.rag.application.ports.converters import OCRService, PageExporter
 from src.rag.infrastructure.logging.logger import get_app_logger
+from src.rag.infrastructure.converters.default_exporter import (
+    DefaultPageExporter
+)
 
 # Optional OCR fallback for image-only PDFs
 
@@ -20,153 +26,129 @@ import pytesseract as _tesseract
 import re
 
 
-class BaseConverter:
-    """Abstract base class for file-to-Markdown converters.
+class DefaultOCRService:
+    """OCR using pdf2image and Tesseract as a fallback backend.
 
-    Subclasses should implement concrete conversion strategies but keep the
-    public interface stable. The base class also provides a helper to persist
-    converted Markdown while preserving the relative directory layout.
+    Safe to construct even if dependencies are missing. Failures return
+    None and are logged.
     """
 
-    def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
-        """Convert a single file to Markdown text.
+    def __init__(self, logger: logging.Logger) -> None:
+        """Initialize the OCR service.
 
         Args:
-            input_path: Absolute or relative path to the input file.
-
-        Returns:
-            The Markdown text if the format is supported and conversion
-            succeeds. Returns ``None`` if the file type is unsupported or if
-            conversion fails gracefully.
+          logger (logging.Logger): Application logger.
         """
-        raise NotImplementedError
+        self.logger = logger
 
-    def save_markdown(
-        self,
-        content: str,
-        input_path: pathlib.Path,
-        output_root: pathlib.Path,
-    ) -> pathlib.Path:
-        """Save Markdown content while mirroring the input tree.
-
-        The relative path from the converter's ``input_root`` to ``input_path``
-        is preserved under ``output_root`` and the file extension is replaced
-        with ``.md``.
+    def ocr_pdf(self, path: pathlib.Path) -> Optional[str]:
+        """Perform OCR on a PDF file.
 
         Args:
-            content: Markdown content to write.
-            input_path: Path to the original input file.
-            output_root: Root directory where Markdown artifacts are stored.
+          path (pathlib.Path): PDF path.
 
         Returns:
-            The full path of the written Markdown file.
+          Optional[str]: Extracted text or None.
         """
-        relative_path = os.path.relpath(input_path, self.input_root)
-        output_path = output_root / pathlib.Path(relative_path
-                                                 ).with_suffix(".md")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(content, encoding="utf-8")
-        return output_path
+        try:
+            pages = _pdf2img(str(path))
+        except Exception as exc:
+            self.logger.error("pdf2image failed for %s: %s", path, exc)
+            return None
+        md_pages: List[str] = []
+        for idx, img in enumerate(pages, start=1):
+            try:
+                text = _tesseract.image_to_string(img)
+            except Exception as exc:
+                self.logger.error("Tesseract failed on page %s: %s", idx,
+                                  exc)
+                continue
+            md_pages.append(f"\n\n# Page {idx}\n\n{text.strip()}\n")
+        ocr_md = "".join(md_pages).strip()
+        return ocr_md if ocr_md else None
 
 
-class DocumentConverter(BaseConverter):
+class DocumentConverter():
     """Convert documents in a directory tree to Markdown.
 
-    Uses ``docling`` for multi-format conversion when available and copies
+    Uses docling for multi-format conversion when available and copies
     existing Markdown files as-is. Unsupported files are skipped silently.
 
-    Attributes:
-        input_root: Root directory containing the source files.
-        output_root: Root directory where Markdown outputs will be written.
-        _converter: Internal Docling converter instance.
+    Dependencies such as OCR and page export are injected to follow SOLID.
     """
 
-    def __init__(self, input_root: pathlib.Path,
-                 output_root: pathlib.Path) -> None:
+    def __init__(
+        self,
+        input_root: pathlib.Path,
+        output_root: pathlib.Path,
+        ocr: Optional[OCRService] = None,
+        exporter: Optional[PageExporter] = None,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
         """Initialize the converter.
 
         Args:
-            input_root: Root directory to scan for input files.
-            output_root: Root directory where converted Markdown files are
-                written, preserving the relative structure of ``input_root``.
+          input_root (pathlib.Path): Root directory to scan for input files.
+          output_root (pathlib.Path): Root directory where converted Markdown
+            files are written, preserving input_root structure.
+          ocr (Optional[OCRService]): OCR service implementation.
+          exporter (Optional[PageExporter]): PDF page exporter implementation.
+          logger (Optional[logging.Logger]): Application logger.
         """
         self.input_root = pathlib.Path(input_root)
         self.output_root = pathlib.Path(output_root)
-        self.logger = get_app_logger()
+        self.logger = logger or get_app_logger()
+        self.ocr = ocr or DefaultOCRService(self.logger)
+        self.exporter = exporter or DefaultPageExporter(self.logger)
 
         self._converter = _DoclingConverter() if _DoclingConverter else None
         self.logger.info(
-            f"Initialized DocumentConverter | input_root={self.input_root}"
-            f" | output_root={self.output_root}"
+            f"DocumentConverter initialized | input_root={self.input_root} "
+            f"| output_root={self.output_root}"
         )
-        self.logger.info("OCR fallback available: pdf2image + "
-                         "Tesseract detected")
+        capabilities = []
+        if self._converter:
+            capabilities.append("docling")
+        if _pdf2img and _tesseract:
+            capabilities.append("OCR fallback")
+        if capabilities:
+            self.logger.info(f"Capabilities: {', '.join(capabilities)}")
+        else:
+            self.logger.warning("No conversion capabilities detected")
 
     def _text_density_low(self, text: str, min_chars: int = 600,
                           min_words: int = 120) -> bool:
-        """Heuristic: detect near-empty or image-only extraction results.
+        """Detect near-empty or image-only extraction results.
 
-        Returns True when Markdown likely lacks true text.
+        Args:
+          text (str): Text to analyze.
+          min_chars (int): Minimum alphanumeric characters threshold.
+          min_words (int): Minimum word count threshold.
+
+        Returns:
+          bool: True if text likely lacks true content.
         """
         if not text:
             return True
-        # Count alphanumeric characters and words
         alnum = len(re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ0-9]", text))
         words = len(re.findall(r"\b\w+\b", text))
-        # Very low signal or huge image markdown with few words
         if alnum < min_chars or words < min_words:
             return True
         return False
 
-    def _ocr_pdf(self, path: pathlib.Path) -> Optional[str]:
-        """Fallback OCR for image-only PDFs using pdf2image + Tesseract.
-
-        Returns Markdown text or None when OCR backend is unavailable.
-        """
-        try:
-            pages = _pdf2img(str(path))
-            md_pages = []
-            for idx, img in enumerate(pages, start=1):
-                text = _tesseract.image_to_string(img)
-                md_pages.append(f"\n\n# Page {idx}\n\n{text.strip()}\n")
-            ocr_md = "".join(md_pages).strip()
-            return ocr_md if ocr_md else None
-        except Exception as exc:  # pragma: no cover
-            self.logger.error(f"OCR fallback failed for {path}: {exc}")
-            return None
-
-    def _export_pdf_pages(self, pdf_path: pathlib.Path,
-                          md_out_path: pathlib.Path) -> list[pathlib.Path]:
-        """Render PDF pages to PNGs next to the future MD file.
-
-        Returns a list of image paths.
-        """
-        if _pdf2img is None:
-            self.logger.warning("Cannot export PDF pages: "
-                                "pdf2image not installed")
-            return []
-        asset_dir = md_out_path.parent / f"{md_out_path.stem}_assets"
-        asset_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            pages = _pdf2img(str(pdf_path))
-        except Exception as exc:  # pragma: no cover
-            self.logger.error(f"pdf2image failed for {pdf_path}: {exc}")
-            return []
-        out_paths: list[pathlib.Path] = []
-        for i, img in enumerate(pages, start=1):
-            out_path = asset_dir / f"page_{i:03d}.png"
-            try:
-                img.save(out_path)
-                out_paths.append(out_path)
-            except Exception as exc:  # pragma: no cover
-                self.logger.error(f"Saving page image failed: {out_path}"
-                                  f" | {exc}")
-        return out_paths
-
     def _replace_image_placeholders(self, md: str,
                                     md_out_path: pathlib.Path,
                                     images: list[pathlib.Path]) -> str:
-        """Replace '<!-- image -->' occurrences with Markdown image links."""
+        """Replace '<!-- image -->' occurrences with Markdown image links.
+
+        Args:
+          md (str): Markdown text containing placeholders.
+          md_out_path (pathlib.Path): Path to the Markdown output file.
+          images (List[pathlib.Path]): List of page image paths.
+
+        Returns:
+          str: Markdown text with image links inserted.
+        """
         if not images:
             return md
         rel_links = [
@@ -186,7 +168,14 @@ class DocumentConverter(BaseConverter):
         return "".join(rebuilt)
 
     def _planned_md_path(self, input_path: pathlib.Path) -> pathlib.Path:
-        """Compute the markdown path that save_markdown() will write to."""
+        """Compute the Markdown path that save_markdown() will write to.
+
+        Args:
+          input_path (pathlib.Path): Original input file path.
+
+        Returns:
+          pathlib.Path: Planned Markdown output path.
+        """
         relative_path = os.path.relpath(input_path, self.input_root)
         return self.output_root / pathlib.Path(relative_path
                                                ).with_suffix(".md")
@@ -195,53 +184,54 @@ class DocumentConverter(BaseConverter):
         """Convert a file using Docling.
 
         Args:
-            path: File to convert.
+          path (pathlib.Path): File to convert.
 
         Returns:
-            The Markdown text on success, otherwise ``None`` on failure.
+          Optional[str]: Markdown text on success, None on failure.
         """
         try:
             result = self._converter.convert(str(path))
             md = result.document.export_to_markdown()
-            # If PDF and text density is low, try OCR fallback
             if path.suffix.lower() == ".pdf" and self._text_density_low(md):
                 self.logger.info(f"Low text density detected in {path.name}; "
-                                 f"attempting OCR fallback")
-                ocr_md = self._ocr_pdf(path)
+                                 "attempting OCR fallback")
+                ocr_md = self.ocr.ocr_pdf(path)
                 if ocr_md and not self._text_density_low(ocr_md,
                                                          min_chars=300,
                                                          min_words=60):
                     self.logger.info(f"OCR fallback succeeded for {path.name}")
                     return ocr_md
                 else:
-                    self.logger.warning(f"OCR fallback yielded low text or "
-                                        f"failed for {path.name}; "
-                                        f"keeping Docling output")
-            # Replace Docling image placeholders with exported PDF page images
+                    self.logger.warning(
+                        f"OCR fallback yielded low text or failed for "
+                        f"{path.name}; keeping Docling output"
+                    )
             if path.suffix.lower() == ".pdf" and "<!-- image -->" in md:
                 md_out_path = self._planned_md_path(path)
-                page_imgs = self._export_pdf_pages(path, md_out_path)
+                page_imgs = self.exporter.export_pages(path, md_out_path)
                 if page_imgs:
                     before = md
                     md = self._replace_image_placeholders(md,
                                                           md_out_path,
                                                           page_imgs)
                     if md != before:
-                        self.logger.info(f"Replaced image placeholders with "
-                                         f"{len(page_imgs)} page images "
-                                         f"for {path.name}")
+                        self.logger.info(
+                            f"Replaced image placeholders with "
+                            f"{len(page_imgs)} page images for {path.name}"
+                        )
                 else:
-                    self.logger.warning(f"No page images exported; "
-                                        f"leaving placeholders in {path.name}")
+                    self.logger.warning(
+                        f"No page images exported; leaving placeholders in "
+                        f"{path.name}"
+                    )
             return md
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
             self.logger.error(f"Conversion failed for {path}: {exc}")
             if path.suffix.lower() == ".pdf":
-                ocr_md = self._ocr_pdf(path)
+                ocr_md = self.ocr.ocr_pdf(path)
                 if ocr_md:
-                    # Even with OCR, inject page images if possible
                     md_out_path = self._planned_md_path(path)
-                    page_imgs = self._export_pdf_pages(path, md_out_path)
+                    page_imgs = self.exporter.export_pages(path, md_out_path)
                     if page_imgs:
                         ocr_md = self._replace_image_placeholders(ocr_md,
                                                                   md_out_path,
@@ -252,15 +242,15 @@ class DocumentConverter(BaseConverter):
     def convert_file(self, input_path: pathlib.Path) -> Optional[str]:
         """Convert or copy a single file to Markdown.
 
-        If the file is already Markdown, the text is returned directly. If the
-        Docling backend is not available, non-Markdown files are skipped.
+        If the file is already Markdown, the text is returned directly. If
+        Docling is not available, non-Markdown files are skipped.
 
         Args:
-            input_path: Path to the input file.
+          input_path (pathlib.Path): Path to the input file.
 
         Returns:
-            The Markdown text if conversion or copy succeeds, otherwise
-            ``None``.
+          Optional[str]: Markdown text if conversion or copy succeeds,
+            otherwise None.
         """
         ext = input_path.suffix.lower()
         if ext == ".md":
@@ -269,19 +259,19 @@ class DocumentConverter(BaseConverter):
         if not self._converter:
             self.logger.warning(
                 f"Skipping non-Markdown without docling: {input_path}"
-                )
+            )
             return None
         return self._convert_with_docling(input_path)
 
     def convert_all(self) -> List[pathlib.Path]:
         """Convert an entire directory tree to Markdown.
 
-        Walks ``input_root``, converts each supported file, and writes a
-        Markdown artifact under ``output_root`` while preserving the relative
-        structure. Existing Markdown files are copied.
+        Walks input_root, converts each supported file, and writes Markdown
+        under output_root preserving relative structure. Existing Markdown
+        files are copied.
 
         Returns:
-            A list of paths to the written Markdown files.
+          List[pathlib.Path]: Paths to the written Markdown files.
         """
         outputs: List[pathlib.Path] = []
         copied = 0
@@ -313,14 +303,41 @@ class DocumentConverter(BaseConverter):
         )
         return outputs
 
+    def save_markdown(
+        self,
+        content: str,
+        input_path: pathlib.Path,
+        output_root: pathlib.Path,
+    ) -> pathlib.Path:
+        """Save Markdown content while mirroring the input tree.
+
+        The relative path from the converter's input_root to input_path is
+        preserved under output_root with the extension replaced by .md.
+
+        Args:
+          content (str): Markdown content to write.
+          input_path (pathlib.Path): Path to the original input file.
+          output_root (pathlib.Path): Root directory to store Markdown files.
+
+        Returns:
+          pathlib.Path: The full path of the written Markdown file.
+        """
+        relative_path = os.path.relpath(input_path, self.input_root)
+        output_path = output_root / pathlib.Path(relative_path
+                                                 ).with_suffix(".md")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(content, encoding="utf-8")
+        return output_path
+
 
 if __name__ == "__main__":
+    logger = get_app_logger()
     converter = DocumentConverter(
         input_root=pathlib.Path("./data/controlled_documentation"),
         output_root=pathlib.Path("./data/clean_md_database"),
     )
     written = converter.convert_all()
-    get_app_logger.info(
-        f"Converted {len(written)} documents to Markdown"
-        f" → {pathlib.Path("./data/clean_md_database").resolve()}"
+    out_dir = pathlib.Path("./data/clean_md_database").resolve()
+    logger.info(
+        f"Converted {len(written)} documents to Markdown → {out_dir}"
     )
