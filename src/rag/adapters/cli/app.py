@@ -10,7 +10,7 @@ from src.rag.application.use_cases.rag_chat import RAGChatService
 from src.rag.application.use_cases.intent_classifier import IntentClassifier
 from src.rag.adapters.ui.chat_page import ChatPage
 
-from src.rag.application.ports.embedders import MistralEmbedder
+from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_usage_logger
 
 

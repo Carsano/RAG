@@ -15,9 +15,11 @@ from typing import List, Optional
 
 import numpy as np
 import faiss
+from src.rag.application.ports.embedders import Embedder
+
 from src.rag.infrastructure.chunking.chunkers import Chunker
 from src.rag.infrastructure.chunking.chunkers import MarkdownTagChunker
-from src.rag.application.ports.embedders import Embedder, MistralEmbedder
+from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_app_logger
 
 
