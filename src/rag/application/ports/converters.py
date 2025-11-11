@@ -1,0 +1,45 @@
+"""
+Contracts for document conversion services.
+"""
+from __future__ import annotations
+from typing import List, Optional, Protocol
+import pathlib
+
+
+class OCRService(Protocol):
+    """OCR service contract.
+
+    Implementations turn image-based PDFs into plain text.
+    """
+
+    def ocr_pdf(self, path: pathlib.Path) -> Optional[str]:
+        """Perform OCR on a PDF file.
+
+        Args:
+          path (pathlib.Path): PDF path.
+
+        Returns:
+          Optional[str]: Extracted text or None on failure.
+        """
+        ...
+
+
+class PageExporter(Protocol):
+    """Page export contract.
+
+    Implementations render PDF pages to image files on disk.
+    """
+
+    def export_pages(
+        self, pdf_path: pathlib.Path, md_out_path: pathlib.Path
+    ) -> List[pathlib.Path]:
+        """Export PDF pages as images.
+
+        Args:
+          pdf_path (pathlib.Path): Input PDF.
+          md_out_path (pathlib.Path): Planned Markdown output path.
+
+        Returns:
+          List[pathlib.Path]: Paths to the rendered page images.
+        """
+        ...

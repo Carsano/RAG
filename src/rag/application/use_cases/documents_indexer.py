@@ -1,29 +1,32 @@
 """
-Simple FAISS indexer for Markdown files using Mistral embeddings.
-
-This module scans a root directory, chunks Markdown, generates embeddings,
-and builds a FAISS index. It logs progress and writes artifacts for later
-retrieval.
+Use case for indexing Markdown documents into a vector store.
 """
 from __future__ import annotations
 
 import time
 import json
 import pickle
-import pathlib
 from typing import List, Optional
-
+import pathlib
 import numpy as np
-import faiss
+
+from src.rag.application.ports.embedders import Embedder
+
+from src.rag.utils.utils import get_project_root
+
 from src.rag.infrastructure.chunking.chunkers import Chunker
 from src.rag.infrastructure.chunking.chunkers import MarkdownTagChunker
-from src.rag.application.ports.embedders import Embedder, MistralEmbedder
+from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_app_logger
+from src.rag.infrastructure.vectorstores.faiss_store_writer import (
+    FaissStoreWriter
+)
 
 
-class Indexer:
+class DocumentsIndexer:
     """
-    Index Markdown files into a FAISS index using Mistral embeddings.
+    Index Markdown files using Mistral embeddings
+    and delegate FAISS to FaissVectorIndex.
 
     The class performs a recursive scan, Markdown chunking, embedding calls,
     and FAISS indexing. It persists intermediate state to allow resuming
@@ -100,8 +103,8 @@ class Indexer:
         )
         self.sleep_between_calls = sleep_between_calls
 
-        # Resolve project root and ensure data/indexes exists
-        project_root = pathlib.Path(__file__).resolve().parent.parent
+        # Resolve project root and ensure data/indexes exists at repo root
+        project_root = get_project_root()
         indexes_dir = project_root / "data" / "indexes"
         indexes_dir.mkdir(parents=True, exist_ok=True)
 
@@ -131,7 +134,7 @@ class Indexer:
         self.valid_chunks: List[str] = []
         self.embeddings_list: List[List[float]] = []
         self.valid_sources: List[str] = []
-        self.index: Optional[faiss.Index] = None
+        self.index = None
         self.logger = get_app_logger()
 
     def _load_resume_state(self) -> None:
@@ -205,10 +208,9 @@ class Indexer:
             )
             return
 
-        embeddings = np.array(self.embeddings_list, dtype="float32")
-        dimension = embeddings.shape[1]
-        self.index = faiss.IndexFlatL2(dimension)
-        self.index.add(embeddings)
+        fvi = FaissStoreWriter()
+        fvi.rebuild(self.embeddings_list)
+        fvi.save(str(self.index_path))
 
         with open(self.chunks_pkl_path, "wb") as f:
             pickle.dump(self.valid_chunks, f)
@@ -218,7 +220,6 @@ class Indexer:
             "all_chunk_sources.json")
         with open(sources_json, "w", encoding="utf-8") as f:
             json.dump(self.valid_sources, f, ensure_ascii=False, indent=2)
-        faiss.write_index(self.index, str(self.index_path))
         self.logger.info(
             f"Index written: {self.index_path} | "
             f"Chunks: {self.chunks_json_path} / {self.chunks_pkl_path}"
@@ -267,11 +268,9 @@ class Indexer:
         if not self.embeddings_list:
             self.index = None
             return
-
-        embs = np.array(self.embeddings_list, dtype="float32")
-        dim = embs.shape[1]
-        self.index = faiss.IndexFlatL2(dim)
-        self.index.add(embs)
+        fvi = FaissStoreWriter()
+        fvi.rebuild(self.embeddings_list)
+        self.index = fvi.idx
 
     def _list_md_files(self, root: pathlib.Path) -> List[pathlib.Path]:
         """
@@ -351,22 +350,3 @@ class Indexer:
         self._save_intermediate(i=max(0, len(self.valid_chunks) - 1))
         self._finalize_index()
         return removed
-
-
-def main() -> None:
-    """
-    Entry point for a manual indexing run.
-
-    Uses the `clean_md_database` folder as root and builds the index.
-    """
-    ROOT = (pathlib.Path(__file__).resolve().parent.parent / "data" /
-            "clean_md_database")
-    indexer = Indexer(root=ROOT)
-    indexer.build()
-    removed = indexer.remove_file(
-        pathlib.Path("data/clean_md_database/budget/budget_2024.md"))
-    indexer.logger.info(f"Removed {removed}")
-
-
-if __name__ == "__main__":
-    main()

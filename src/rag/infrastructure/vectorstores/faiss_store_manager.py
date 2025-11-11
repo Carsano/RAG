@@ -2,13 +2,15 @@
 Faiss vector store adapter.
 Implements the abstract vector store interface using Faiss.
 """
+from __future__ import annotations
 import os
 import pickle
 import numpy as np
 import faiss
 from typing import List, Tuple
-from src.rag.application.ports.vector_store import VectorStore
 import streamlit as st
+
+from src.rag.application.ports.vector_store_manager import VectorStoreManager
 
 
 @st.cache_resource(show_spinner=False)
@@ -33,7 +35,7 @@ def _load_index_and_docs(index_path: str, chunks_path: str):
     return index, docs
 
 
-class FaissStore(VectorStore):
+class FaissStore(VectorStoreManager):
     """Faiss-based implementation of the VectorStore interface.
 
     This class manages a Faiss index and associated document chunks,

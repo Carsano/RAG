@@ -1,20 +1,34 @@
+"""CLI application entry point.
+
+This module wires together the main application components including
+configuration, language model, embedder, retriever, and UI. It initializes
+the RAG chat service and starts the chat interface.
 """
-app interface module.
-Contains the main applicaiton logic and integration of components.
-"""
+
+from src.rag.application.use_cases.rag_chat import RAGChatService
+from src.rag.application.use_cases.intent_classifier import IntentClassifier
 
 from src.rag.infrastructure.config.config import AppConfig
 from src.rag.infrastructure.llm.mistral_client import MistralLLM
-from src.rag.infrastructure.vectorstores.faiss_store import FaissStore
-from src.rag.application.use_cases.rag_chat import RAGChatService
-from src.rag.application.use_cases.intent_classifier import IntentClassifier
-from src.rag.adapters.ui.chat_page import ChatPage
-
-from src.rag.application.ports.embedders import MistralEmbedder
+from src.rag.infrastructure.vectorstores.faiss_store_manager import FaissStore
+from src.rag.infrastructure.vectorstores.faiss_store_retriever import (
+    FaissRetriever
+)
+from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_usage_logger
+
+from src.rag.adapters.ui.chat_page import ChatPage
 
 
 def main():
+    """Run the CLI application.
+
+    Loads configuration, initializes dependencies (LLM, embedder, retriever,
+    and intent classifier), and starts the chat interface.
+
+    Raises:
+        Exception: If initialization or configuration loading fails.
+    """
     usage_logger = get_usage_logger()
     usage_logger.info("CLI started by user")
 
@@ -26,11 +40,11 @@ def main():
     store = FaissStore(index_path=cfg.faiss_index_path,
                        chunks_pickle_path=cfg.chunks_path)
     classifier = IntentClassifier(llm=llm)
+    retriever = FaissRetriever(embedder=embedder, store=store)
 
     svc = RAGChatService(
         llm=llm,
-        embedder=embedder,
-        store=store,
+        retriever=retriever,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
     )

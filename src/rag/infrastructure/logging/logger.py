@@ -10,6 +10,8 @@ from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
 
+from src.rag.utils.utils import get_project_root
+
 
 @dataclass
 class LoggerConfig:
@@ -189,12 +191,7 @@ class LoggerBuilder:
         Returns:
             Path: Path object pointing to the logs root directory.
         """
-        here = Path(__file__).resolve()
-        for parent in here.parents:
-            if (parent / "pyproject.toml").exists() or (parent / ".git"
-                                                        ).exists():
-                return (parent / "logs")
-        return here.parents[-1] / "logs"
+        return get_project_root() / "logs"
 
     @staticmethod
     def _ensure_dir(p: Path) -> Path:
