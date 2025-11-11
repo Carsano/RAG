@@ -3,6 +3,7 @@
 Defines the contract for components handling vector indexing,
 similarity search, and retrieval.
 """
+from __future__ import annotations
 from typing import List, Tuple, Protocol
 
 

@@ -3,7 +3,9 @@
 Defines the contract for chat completion and text generation
 components.
 """
+from __future__ import annotations
 from typing import List, Protocol
+
 from src.rag.infrastructure.config.types import LLMMessage
 
 

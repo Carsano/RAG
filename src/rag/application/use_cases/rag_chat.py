@@ -6,6 +6,7 @@ Retrieval-Augmented Generation (RAG).
 """
 from __future__ import annotations
 from typing import List
+
 from src.rag.application.ports.llm import LLM
 from src.rag.application.ports.retriever import Retriever
 from src.rag.application.use_cases.prompting import build_system_prompt

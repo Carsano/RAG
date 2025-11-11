@@ -1,6 +1,7 @@
 """
 Contracts for document conversion services.
 """
+from __future__ import annotations
 from typing import List, Optional, Protocol
 import pathlib
 
