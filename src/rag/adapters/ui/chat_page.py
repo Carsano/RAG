@@ -6,9 +6,11 @@ Contains no business logic.
 from __future__ import annotations
 
 from typing import TypedDict, Literal
-from src.rag.infrastructure.config.types import Messages
 import streamlit as st
+
 from src.rag.application.use_cases.rag_chat import RAGChatService
+
+from src.rag.infrastructure.config.types import Messages
 from src.rag.infrastructure.logging.logger import get_usage_logger
 
 Role = Literal["system", "user", "assistant"]
