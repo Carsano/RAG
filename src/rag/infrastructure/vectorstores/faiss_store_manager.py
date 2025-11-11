@@ -8,8 +8,9 @@ import pickle
 import numpy as np
 import faiss
 from typing import List, Tuple
-from src.rag.application.ports.vector_store_manager import VectorStoreManager
 import streamlit as st
+
+from src.rag.application.ports.vector_store_manager import VectorStoreManager
 
 
 @st.cache_resource(show_spinner=False)

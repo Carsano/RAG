@@ -7,8 +7,9 @@ import logging
 import pathlib
 from typing import List, Optional
 from pdf2image import convert_from_path as _pdf2img
-from src.rag.application.ports.converters import PageExporter
 import pytesseract as _tesseract
+
+from src.rag.application.ports.converters import PageExporter
 
 
 class DefaultPageExporter(PageExporter):

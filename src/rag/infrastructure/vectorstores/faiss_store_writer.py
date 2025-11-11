@@ -7,6 +7,7 @@ from __future__ import annotations
 import numpy as np
 import faiss
 from typing import List
+
 from src.rag.application.ports.indexer import Indexer
 
 

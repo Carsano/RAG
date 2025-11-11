@@ -7,8 +7,8 @@ import os
 import time
 from typing import List, Optional
 from dotenv import load_dotenv
-
 from mistralai import Mistral
+
 from src.rag.application.ports.embedders import Embedder
 
 load_dotenv()

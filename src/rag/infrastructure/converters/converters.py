@@ -11,20 +11,18 @@ import logging
 import os
 import pathlib
 from typing import List, Optional
-
 from docling.document_converter import DocumentConverter as _DoclingConverter
+from pdf2image import convert_from_path as _pdf2img
+import pytesseract as _tesseract
+import re
+
 from src.rag.application.ports.converters import OCRService, PageExporter
+
 from src.rag.infrastructure.logging.logger import get_app_logger
 from src.rag.infrastructure.converters.default_exporter import (
     DefaultPageExporter,
     DefaultOCRService
 )
-
-# Optional OCR fallback for image-only PDFs
-
-from pdf2image import convert_from_path as _pdf2img
-import pytesseract as _tesseract
-import re
 
 
 class DocumentConverter():

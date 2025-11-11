@@ -1,8 +1,8 @@
 """
 FAISS-based retriever implementation.
 """
-
 from typing import List
+
 from src.rag.application.ports.embedders import Embedder
 from src.rag.application.ports.vector_store_manager import VectorStoreManager
 from src.rag.application.ports.retriever import Retriever
