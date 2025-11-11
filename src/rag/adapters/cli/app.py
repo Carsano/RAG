@@ -1,6 +1,8 @@
-"""
-app interface module.
-Contains the main applicaiton logic and integration of components.
+"""CLI application entry point.
+
+This module wires together the main application components including
+configuration, language model, embedder, retriever, and UI. It initializes
+the RAG chat service and starts the chat interface.
 """
 
 from src.rag.infrastructure.config.config import AppConfig
@@ -16,6 +18,14 @@ from src.rag.infrastructure.logging.logger import get_usage_logger
 
 
 def main():
+    """Run the CLI application.
+
+    Loads configuration, initializes dependencies (LLM, embedder, retriever,
+    and intent classifier), and starts the chat interface.
+
+    Raises:
+        Exception: If initialization or configuration loading fails.
+    """
     usage_logger = get_usage_logger()
     usage_logger.info("CLI started by user")
 
