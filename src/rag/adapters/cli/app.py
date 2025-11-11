@@ -8,6 +8,7 @@ from src.rag.infrastructure.llm.mistral_client import MistralLLM
 from src.rag.infrastructure.vectorstores.faiss_store_manager import FaissStore
 from src.rag.application.use_cases.rag_chat import RAGChatService
 from src.rag.application.use_cases.intent_classifier import IntentClassifier
+from src.rag.application.ports.retriever import Retriever
 from src.rag.adapters.ui.chat_page import ChatPage
 
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
@@ -26,11 +27,11 @@ def main():
     store = FaissStore(index_path=cfg.faiss_index_path,
                        chunks_pickle_path=cfg.chunks_path)
     classifier = IntentClassifier(llm=llm)
+    retriever = Retriever(embedder=embedder, store=store)
 
     svc = RAGChatService(
         llm=llm,
-        embedder=embedder,
-        store=store,
+        retriever=retriever,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
     )
