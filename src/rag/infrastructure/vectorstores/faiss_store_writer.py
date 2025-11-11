@@ -7,9 +7,10 @@ from __future__ import annotations
 import numpy as np
 import faiss
 from typing import List
+from src.rag.application.ports.indexer import Indexer
 
 
-class FaissStoreWriter:
+class FaissStoreWriter(Indexer):
     """Builder/writer for a Faiss index.
 
     This class is separate from FaissStore (retrieval) and focuses on
