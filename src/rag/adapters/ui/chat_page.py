@@ -1,7 +1,7 @@
-"""
-Chat page UI for Streamlit.
-Single responsibility: present messages and delegate to RAGChatService.
-No business logic here.
+"""Chat page UI for Streamlit.
+
+Presents chat messages and delegates processing to RAGChatService.
+Contains no business logic.
 """
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ Role = Literal["system", "user", "assistant"]
 
 
 class ChatMessage(TypedDict):
+    """Represents a single chat message with a role and content."""
     role: Role
     content: str
 
@@ -26,13 +27,26 @@ WELCOME: str = (
 
 
 class ChatPage:
+    """Streamlit chat page controller.
+
+    Manages the chat state, displays messages, and communicates with
+    the RAGChatService to generate assistant responses.
+    """
     def __init__(self, service: RAGChatService, title: str) -> None:
+        """Initialize the chat page.
+
+        Args:
+          service (RAGChatService): The RAG chat service used to generate
+            responses.
+          title (str): The page title displayed in the Streamlit interface.
+        """
         self.service = service
         self.title = title
         self.usage_logger = get_usage_logger()
 
     # ---------- state ----------
     def _ensure_state(self) -> None:
+        """Ensure session state is initialized for messages and page config."""
         if "messages" not in st.session_state:
             messages: Messages = [
                 {"role": "assistant", "content": WELCOME}
@@ -45,14 +59,27 @@ class ChatPage:
 
     # ---------- rendering ----------
     def _render_history(self) -> None:
+        """Render all messages from the chat history."""
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
     def _append(self, role: Role, content: str) -> None:
+        """Append a message to the Streamlit session state.
+
+        Args:
+          role (Role): The message sender role ("user", "assistant", or
+            "system").
+          content (str): The message text.
+        """
         st.session_state.messages.append({"role": role, "content": content})
 
     def _handle_user_prompt(self, prompt: str) -> None:
+        """Process the user's input prompt and generate a response.
+
+        Args:
+          prompt (str): The user's message text.
+        """
         # echo user
         self._append("user", prompt)
         with st.chat_message("user"):
@@ -78,6 +105,7 @@ class ChatPage:
 
     # ---------- public ----------
     def render(self) -> None:
+        """Render the chat interface and handle new user input."""
         self._ensure_state()
         st.title(self.title)
 
