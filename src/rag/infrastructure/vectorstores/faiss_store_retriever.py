@@ -37,3 +37,8 @@ class FaissRetriever(Retriever):
 
         ids, _ = self.store.search(emb, k=k)
         return self.store.get_chunks(ids)
+
+
+__all__ = [
+    "FaissRetriever"
+]

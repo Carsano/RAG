@@ -50,3 +50,8 @@ class FaissStoreWriter(Indexer):
         if self.idx is None:
             raise ValueError("No index to save. Build or add vectors first.")
         faiss.write_index(self.idx, path)
+
+
+__all__ = [
+    "FaissStoreWriter"
+]

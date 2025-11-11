@@ -77,3 +77,8 @@ class MistralEmbedder(Embedder):
             out.append(self.embed(t))
             time.sleep(self.delay)
         return out
+
+
+__all__ = [
+    "MistralEmbedder"
+]

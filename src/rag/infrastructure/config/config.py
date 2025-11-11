@@ -48,3 +48,8 @@ class AppConfig:
     def load() -> "AppConfig":
         completion = {"temperature": 0.2, "max_tokens": 300, "top_p": 0.22}
         return AppConfig(completion_args=completion)
+
+
+__all__ = [
+    "AppConfig"
+]

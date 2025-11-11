@@ -15,3 +15,8 @@ def get_project_root() -> pathlib.Path:
     while root.name != "src":
         root = root.parent
     return root.parent
+
+
+__all__ = [
+    "get_project_root"
+]

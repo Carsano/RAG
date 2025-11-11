@@ -86,3 +86,8 @@ class FaissStore(VectorStoreManager):
         return [
             self.documents[i] for i in ids if 0 <= i < len(self.documents)
             ]
+
+
+__all__ = [
+    "FaissStore"
+]
