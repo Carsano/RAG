@@ -101,3 +101,9 @@ class DefaultOCRService:
             md_pages.append(f"\n\n# Page {idx}\n\n{text.strip()}\n")
         ocr_md = "".join(md_pages).strip()
         return ocr_md if ocr_md else None
+
+
+__all__ = [
+    "DefaultPageExporter",
+    "DefaultOCRService"
+]

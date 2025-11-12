@@ -47,3 +47,8 @@ class FakeEmbedder(Embedder):
             List[Optional[List[float]]]: Embeddings per text.
         """
         return [self.embed(t) for t in texts]
+
+
+__all__ = [
+    "FakeEmbedder"
+]

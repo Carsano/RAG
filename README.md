@@ -59,21 +59,50 @@ uv run streamlit run src/rag/adapters/cli/app.py
 │       ├── all_chunks.json
 │       ├── all_chunks.pkl
 │       └── faiss_index.idx
-├── src/
-│   └── rag/
-│       ├── adapters/            # Input/output layer. Everything that interacts with the outside world
-│       │   ├── cli/             # Command-line interface (indexing, chat, etc.)
-│       │   └── ui/              # User interface (Streamlit or similar)
-│       ├── application/         # Core business logic for the RAG system.
-│       │   ├── ports/           # Abstract interfaces (contracts) between the app and infrastructure.
-│       │   └── use_cases/       # Concrete orchestrations: build_index, retrieve, chat.
-│       └── infrastructure/      # Technical implementations.
-│           ├── chunking/        # Splits documents into chunks.
-│           ├── config/          # Configuration and environment management.
-│           ├── converters/      # Converts input files (PDF, Markdown, etc.) into text.
-│           ├── llm/             # LLM clients and embedding generators (Mistral, etc.)
-│           ├── logging/         # Logging configuration and output format.
-│           └── vectorstores/    # Vector databases (FAISS, etc.)
+src
+├── rag
+│   ├── adapters                               # Input/output layer. Everything that interacts with the outside world
+│   │   ├── cli                                # Command-line interface (indexing, chat, etc.)
+│   │   │   ├── app.py
+│   │   │   └── indexation_documentation.py
+│   │   └── ui                               # User interface (Streamlit or similar)
+│   │       └── chat_page.py
+│   ├── application                             # Core business logic for the RAG system.
+│   │   ├── ports                            # Abstract interfaces (contracts) between the app and infrastructure.
+│   │   │   ├── chunkers.py
+│   │   │   ├── converters.py
+│   │   │   ├── embedders.py
+│   │   │   ├── indexer.py
+│   │   │   ├── llm.py
+│   │   │   ├── retriever.py
+│   │   │   └── vector_store_manager.py
+│   │   └── use_cases                     # Concrete orchestrations: build_index, retrieve, chat.
+│   │       ├── documents_indexer.py
+│   │       ├── intent_classifier.py
+│   │       ├── prompting.py
+│   │       └── rag_chat.py
+│   ├── infrastructure                    # Technical implementations.
+│   │   ├── chunking                      # Splits documents into chunks.
+│   │   │   └── chunkers.py
+│   │   ├── config                        # Configuration and environment management.
+│   │   │   ├── config.py
+│   │   │   └── types.py
+│   │   ├── converters                    # Converts input files (PDF, Markdown, etc.) into text.
+│   │   │   ├── converters.py
+│   │   │   └── default_exporter.py
+│   │   ├── embedders
+│   │   │   ├── fake_embedder.py
+│   │   │   └── mistral_embedder.py
+│   │   ├── llm                           # LLM clients and embedding generators (Mistral, etc.)
+│   │   │   └── mistral_client.py
+│   │   ├── logging                       # Logging configuration and output format.
+│   │   │   └── logger.py
+│   │   └── vectorstores                  # Vector databases (FAISS, etc.)
+│   │       ├── faiss_store_manager.py
+│   │       ├── faiss_store_retriever.py
+│   │       └── faiss_store_writer.py
+│   └── utils
+│       └── utils.py
 ├── logs/
 ├── pyproject.toml
 ├── README.md

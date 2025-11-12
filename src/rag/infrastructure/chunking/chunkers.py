@@ -3,7 +3,6 @@ Chunking strategies for RAG indexing.
 """
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import List, Protocol
 
 from langchain_text_splitters import (
@@ -11,24 +10,7 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
 
-
-class Chunker(ABC):
-    """Abstract chunker interface.
-
-    Any concrete chunker must implement `split` and return a list of string
-    chunks ready for embedding.
-    """
-
-    @abstractmethod
-    def split(self, text: str) -> List[str]:
-        """Split raw text into chunks.
-
-        Args:
-            text (str): Input text.
-
-        Returns:
-            List[str]: List of chunk strings.
-        """
+from src.rag.application.ports.chunkers import Chunker
 
 
 class MarkdownTagChunker(Chunker):
@@ -160,7 +142,6 @@ class SemanticChunker(Chunker):
 
 
 __all__ = [
-    "Chunker",
     "MarkdownTagChunker",
     "RecursiveChunker",
     "SemanticChunker",

@@ -70,3 +70,8 @@ class MistralLLM(LLM):
             top_p=self.args.get("top_p", 0.22),
         )
         return resp.choices[0].message.content
+
+
+__all__ = [
+    "MistralLLM"
+]
