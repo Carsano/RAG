@@ -78,6 +78,35 @@ class MistralEmbedder(Embedder):
             time.sleep(self.delay)
         return out
 
+    def embed_query(self, text: str) -> List[float]:
+        """LangChain-compatible embed_query method.
+
+        Args:
+            text (str): Input text.
+
+        Returns:
+            List[float]: Embedding vector.
+
+        Raises:
+            RuntimeError: If embedding fails.
+        """
+        result = self.embed(text)
+        if result is None:
+            raise RuntimeError("embedding failed")
+        return result
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """LangChain-compatible embed_documents method.
+
+        Args:
+            texts (List[str]): Input texts.
+
+        Returns:
+            List[List[float]]: Embeddings with None replaced by empty lists.
+        """
+        results = self.embed_batch(texts)
+        return [r if r is not None else [] for r in results]
+
 
 __all__ = [
     "MistralEmbedder"
