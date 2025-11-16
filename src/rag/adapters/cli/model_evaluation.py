@@ -95,31 +95,30 @@ def _prepare_evaluation_data(path: str, limit: int | None = None
     return _convert_items_to_ragas_format(items)
 
 
-def _convert_results_to_df(results: dict) -> pd.DataFrame:
-    """Convert dict results into Pandas Dataframe
+def _convert_results_to_df(results: Any) -> pd.DataFrame:
+    """Convert evaluation results into a Pandas DataFrame.
 
-    Args:
-        results (dict): Evaluation results to transform
+    Supports ragas `EvaluationResult` via `.to_pandas()` and falls back
+    to a plain dict of column->values.
     """
-    results_df = datasets.Dataset.from_dict(results).to_pandas()
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.max_colwidth', 150)
-    return results_df
+    if hasattr(results, "to_pandas") and callable(getattr(results,
+                                                          "to_pandas")):
+        return results.to_pandas()
+    if isinstance(results, dict):
+        return datasets.Dataset.from_dict(results).to_pandas()
+    raise TypeError(
+        f"Unsupported results type: {type(results)}. "
+        f"Expected EvaluationResult or dict."
+    )
 
 
-def _print_evaluation_results(results: dict) -> None:
-    """Print evaluation results in a readable format.
-
-    Args:
-        results (dict): Evaluation results to print.
-    """
+def _print_evaluation_results(results: Any) -> pd.Series:
+    """Print evaluation results in a readable format and return averages."""
     results_df = _convert_results_to_df(results)
-    print("\n--- Scores Moyens (sur tout le dataset) ---")
-    average_scores = results_df.mean(numeric_only=True)
-    print(average_scores)
-    return average_scores
+    print("\n--- Mean scores (dataset-wide) ---")
+    avg = results_df.mean(numeric_only=True)
+    print(avg)
+    return avg
 
 
 def main() -> None:
