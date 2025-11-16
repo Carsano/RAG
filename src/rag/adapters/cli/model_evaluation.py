@@ -124,7 +124,8 @@ def main() -> None:
             embedder=MistralEmbedder()
         )
     )
-    evaluation_data = _prepare_evaluation_data()
+    evaluation_data = _prepare_evaluation_data(
+        path="logs/interactions/interactions.jsonl")
     raw_results = evaluater.execute(evaluation_data=evaluation_data)
     cleanded_results = _print_evaluation_results(raw_results)
     return cleanded_results
