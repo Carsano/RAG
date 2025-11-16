@@ -78,17 +78,11 @@ class ChatPage:
           idx (int): Index of the message in the session history.
           msg (ChatMessage): The assistant message to annotate with feedback.
         """
-        # Unique keys per message to keep widget state stable across reruns
-        selection_key = f"fb_sel_{idx}"
-        comment_key = f"fb_comment_{idx}"
-        submitted_key = f"fb_submitted_{idx}"
+        selection_key, comment_key, submitted_key = self._feedback_keys(idx)
 
-        # Display a compact feedback widget (built-in Streamlit)
         selection = st.feedback("thumbs", key=selection_key)
 
-        # If user selected a rating, allow optional comment + submit
         if selection is not None and not st.session_state.get(submitted_key):
-            # Map numeric selection to label for logging clarity
             rating = "thumb_up" if selection == 1 else "thumb_down"
             comment = st.text_input(
                 "Commentaire (optionnel)",
@@ -96,32 +90,49 @@ class ChatPage:
                 placeholder="Qu'est-ce qui était utile ou à améliorer ?",
             )
             if st.button("Envoyer le feedback", key=f"fb_send_{idx}"):
-                # Log structured feedback (format into a single string)
-                # that don't support printf-style args)
-                try:
-                    answer_preview = (msg.get(
-                        "content", "") or "").replace("\n", " ").strip()
-                    if len(answer_preview) > 400:
-                        answer_preview = answer_preview[:400] + "…"
-                    comment_preview = (
-                        comment or "").replace("\n", " ").strip()
-                    if len(comment_preview) > 400:
-                        comment_preview = comment_preview[:400] + "…"
-                    log_line = (
-                        f"Feedback | msg_index={idx} | rating={rating} "
-                        f"| comment={comment_preview} | "
-                        f"answer={answer_preview}"
-                    )
-                    self.usage_logger.info(log_line)
-                except Exception as e:  # Fallback in case the logger raises
-                    st.warning(f"Impossible d'enregistrer le feedback : {e}")
-                else:
-                    st.session_state[submitted_key] = True
-                    st.toast("Merci pour votre feedback.")
+                self._submit_feedback(idx, rating, comment, msg, submitted_key)
 
-        # If already submitted, show a subtle acknowledgement
         if st.session_state.get(submitted_key):
             st.caption("Feedback enregistré ✔︎")
+
+    def _feedback_keys(self, idx: int) -> tuple[str, str, str]:
+        """Return stable Streamlit widget keys for a given message index."""
+        selection_key = f"fb_sel_{idx}"
+        comment_key = f"fb_comment_{idx}"
+        submitted_key = f"fb_submitted_{idx}"
+        return selection_key, comment_key, submitted_key
+
+    def _submit_feedback(
+        self,
+        idx: int,
+        rating: str,
+        comment: str | None,
+        msg: ChatMessage,
+        submitted_key: str,
+    ) -> None:
+        """Validate, log and acknowledge feedback submission."""
+        try:
+            answer_preview = self._preview(msg.get("content", ""), 400)
+            comment_preview = self._preview(comment or "", 400)
+            log_line = (
+                f"Feedback | msg_index={idx} | rating={rating} "
+                f"| comment={comment_preview} | answer={answer_preview}"
+            )
+            self.usage_logger.info(log_line)
+        except Exception as e:
+            st.warning(f"Impossible d'enregistrer le feedback : {e}")
+            return
+        st.session_state[submitted_key] = True
+        st.toast("Merci pour votre feedback.")
+
+    def _preview(self, text: str, max_len: int) -> str:
+        """Single-line, length-limited preview for logging and UI."""
+        if not text:
+            return ""
+        one_line = text.replace("\n", " ").strip()
+        return (
+            one_line if len(one_line) <= max_len else one_line[:max_len] + "…"
+            )
 
     def _append(self, role: Role, content: str) -> None:
         """Append a message to the Streamlit session state.
@@ -134,44 +145,71 @@ class ChatPage:
         st.session_state.messages.append({"role": role, "content": content})
 
     def _handle_user_prompt(self, prompt: str) -> None:
-        """Process the user's input prompt and generate a response.
+        """Handle a new user prompt end-to-end.
 
         Args:
           prompt (str): The user's message text.
         """
-        # echo user
+        self._render_user_message(prompt)
+        self._produce_assistant_reply(prompt)
+
+    def _render_user_message(self, prompt: str) -> None:
+        """Append and render the user's message.
+
+        Args:
+          prompt (str): The user's message text.
+        """
         self._append("user", prompt)
         with st.chat_message("user"):
             st.write(prompt)
 
-        # assistant placeholder
+    def _produce_assistant_reply(self, prompt: str) -> str:
+        """Generate, render, log, and append the assistant's reply.
+
+        The reply is produced by the service, displayed with a placeholder,
+        and appended to the session history. Feedback controls are rendered
+        inline so the user can rate the answer immediately.
+
+        Args:
+          prompt (str): The user's message text.
+
+        Returns:
+          str: The assistant's reply text (or an error message).
+        """
         with st.chat_message("assistant"):
             placeholder = st.empty()
             placeholder.markdown("_En cours..._")
             try:
                 reply = self.service.answer(
-                    history=st.session_state.messages, question=prompt
+                    history=st.session_state.messages,
+                    question=prompt,
                 )
-                # log successful interaction
-                self.usage_logger.info(f"User: {prompt} | Response: {reply}")
+                self.usage_logger.info(
+                    f"User: {prompt} | Response: {reply}"
+                )
             except Exception as e:
-                reply = f"Erreur lors de la génération de la réponse : {e}"
-                # log error case
-                self.usage_logger.error(f"User: {prompt} | Error: {e}")
+                reply = (
+                    f"Erreur lors de la génération de la réponse : {e}"
+                )
+                self.usage_logger.error(
+                    f"User: {prompt} | Error: {e}"
+                )
             placeholder.write(reply)
 
+            # Persist the assistant message before rendering feedback
             self._append("assistant", reply)
 
-            # Immediately show feedback controls for the freshly rendered reply
+            # Immediately show feedback controls for this reply
             try:
                 last_idx = len(st.session_state.messages) - 1
-                # We are still inside the assistant chat_message context
-                # so we can render inline
-                self._render_feedback(last_idx,
-                                      st.session_state.messages[last_idx])
+                self._render_feedback(
+                    last_idx, st.session_state.messages[last_idx]
+                )
             except Exception:
-                # Fail-safe: do nothing if state is not yet consistent
+                # Fail-safe: ignore UI errors on reruns
                 pass
+
+            return reply
 
     # ---------- public ----------
     def render(self) -> None:
