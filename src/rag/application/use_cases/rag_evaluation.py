@@ -17,8 +17,9 @@ from ragas.metrics import (
     context_recall,
 )
 
-from langchain_mistralai.chat_models import ChatMistralAI
 from langchain_mistralai.embeddings import MistralAIEmbeddings
+
+from src.rag.infrastructure.llm.langchain_mistral_client import LGMistralLLM
 
 
 DEFAULT_INPUT_PATH = "logs/interactions/interactions.jsonl"
@@ -106,11 +107,11 @@ def _compute_summary(df_samples: pd.DataFrame, metric_cols: List[str]) -> Dict:
     return summary
 
 
-def _init_clients() -> Tuple[ChatMistralAI, MistralAIEmbeddings]:
+def _init_clients() -> Tuple[LGMistralLLM, MistralAIEmbeddings]:
     """Initialize Mistral LLM and embedding clients from environment.
 
     Returns:
-        Tuple of (ChatMistralAI, MistralAIEmbeddings).
+        Tuple of (LGMistralLLM, MistralAIEmbeddings).
 
     Raises:
         SystemExit: If required environment variables are missing.
@@ -125,13 +126,13 @@ def _init_clients() -> Tuple[ChatMistralAI, MistralAIEmbeddings]:
         raise SystemExit("Missing MISTRAL_CHAT_MODEL in environment.")
     if not embed_model:
         raise SystemExit("Missing MISTRAL_EMBED_MODEL in environment.")
-
-    llm = ChatMistralAI(
+    llm_port = LGMistralLLM(
         model=chat_model,
+        api_key=api_key,
         temperature=0.0,
         max_retries=LLM_MAX_RETRIES,
-        api_key=api_key,
     )
+    llm = llm_port.as_langchain()
     emb = MistralAIEmbeddings(model=embed_model, api_key=api_key)
     return llm, emb
 
@@ -189,7 +190,7 @@ def _prepare_dataset(rows: List[Dict]) -> Tuple[pd.DataFrame, Dataset, bool]:
 def _run_single_pass(
     ds: Dataset,
     metrics: List,
-    llm: ChatMistralAI,
+    llm: LGMistralLLM,
     emb: MistralAIEmbeddings,
 ) -> pd.DataFrame:
     """Execute a single evaluation pass and return the per-sample DataFrame.
@@ -218,7 +219,7 @@ def _write_pass_outputs(
     pass_idx: int,
     df_samples: pd.DataFrame,
     metric_cols: List[str],
-    llm: ChatMistralAI,
+    llm: LGMistralLLM,
     emb: MistralAIEmbeddings,
 ) -> None:
     """Write per-sample, summary, and manifest for a given pass.
@@ -266,7 +267,7 @@ def _retry_failed_items(
     initial_df_samples: pd.DataFrame,
     metrics: List,
     metric_cols: List[str],
-    llm: ChatMistralAI,
+    llm: LGMistralLLM,
     emb: MistralAIEmbeddings,
     outdir: pathlib.Path,
     start_pass_idx: int,
