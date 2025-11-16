@@ -51,9 +51,9 @@ def _convert_items_to_ragas_format(items: List[Dict[str, Any]]
         "context": List[List[str]],
         "ground_truth": [List[str]]
     """
-    questions: List[str] = [],
-    answers: List[str] = [],
-    contexts: List[List[str]] = [],
+    questions: List[str] = []
+    answers: List[str] = []
+    contexts: List[List[str]] = []
     ground_truths: List[str] = []
 
     for it in items:
