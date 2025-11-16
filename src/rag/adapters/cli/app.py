@@ -16,6 +16,7 @@ from src.rag.infrastructure.vectorstores.faiss_store_retriever import (
 )
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_usage_logger
+from src.rag.infrastructure.logging.interaction_logger import InteractionLogger
 
 from src.rag.adapters.ui.chat_page import ChatPage
 
@@ -41,12 +42,14 @@ def main():
                        chunks_pickle_path=cfg.chunks_path)
     classifier = IntentClassifier(llm=llm)
     retriever = FaissRetriever(embedder=embedder, store=store)
+    interaction_logger = InteractionLogger()
 
     svc = RAGChatService(
         llm=llm,
         retriever=retriever,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
+        interaction_logger=interaction_logger
     )
 
     usage_logger.info("RAGChatService initialized")

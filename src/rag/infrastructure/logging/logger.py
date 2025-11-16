@@ -399,6 +399,35 @@ class UsageLogger(Logger):
         )
 
 
+class EvaluationLogger(Logger):
+    """Logger dedicated to evaluation tracking, isolated from the main logger.
+
+    Implements a singleton pattern to provide a single
+    evaluation logger instance.
+
+    Attributes:
+        _instance (UsageLogger | None): Singleton instance of UsageLogger.
+    """
+    _instance = None
+
+    def _initialize(self, name: str = "evaluation",
+                    log_file: str | None = None):
+        """Initialize the evaluation logger with appropriate handlers.
+
+        Args:
+            name (str): Logger name.
+            log_file (str | None): Optional explicit log file path.
+        """
+        self.logger = (
+            LoggerBuilder()
+            .name("evaluation")
+            .subdir("evaluations")
+            .prefix("Eval_logs")
+            .console(False)
+            .build()
+        )
+
+
 def get_app_logger():
     """Return the singleton instance of AppLogger.
 
@@ -417,8 +446,18 @@ def get_usage_logger():
     return UsageLogger("usage")
 
 
+def get_evaluation_logger():
+    """Return the singleton instance of EvaluationLogger.
+
+    Returns:
+        EvaluationLogger: Logger configured for tracking usage events.
+    """
+    return EvaluationLogger("evaluation")
+
+
 __all__ = [
     "Logger",
     "get_app_logger",
-    "get_usage_logger"
+    "get_usage_logger",
+    "get_evaluation_logger"
 ]

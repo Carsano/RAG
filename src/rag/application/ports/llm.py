@@ -4,6 +4,7 @@ Defines the contract for chat completion and text generation
 components.
 """
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import List, Protocol
 
 from src.rag.infrastructure.config.types import LLMMessage
@@ -22,3 +23,19 @@ class LLM(Protocol):
             str: Model's text reply.
         """
         ...
+
+    @property
+    def model(self) -> str:
+        """Return the underlying model identifier."""
+
+
+@dataclass(frozen=True)
+class ChatMessage:
+    """Single chat message.
+
+    Attributes:
+        role: One of {"system", "user", "assistant"}.
+        content: Plain text content.
+    """
+    role: str
+    content: str
