@@ -24,6 +24,10 @@ class LLM(Protocol):
         """
         ...
 
+    @property
+    def model(self) -> str:
+        """Return the underlying model identifier."""
+
 
 @dataclass(frozen=True)
 class ChatMessage:
