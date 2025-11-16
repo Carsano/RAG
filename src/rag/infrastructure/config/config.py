@@ -20,7 +20,6 @@ Fournir des informations administratives claires et précises
 Faciliter l'accès à l'information et orienter les citoyens.
 
 ### SOURCES AUTORISÉES :
-Site web officiel : trifouillis-mairie.fr
 Documents municipaux officiels fournis.
 Informations pratiques vérifiées (horaires, contacts).
 NE PAS UTILISER D'AUTRES SOURCES.

@@ -57,7 +57,8 @@ class RAGChatService:
           str: The model's answer.
         """
         intent = self.intent_classifier.classify(question)
-        chunks = self.retriever.retrieve(question) if intent == "rag" else []
+        chunks = self.retriever.retrieve(question,
+                                         k=5) if intent == "rag" else []
         system = {"role": "system",
                   "content": build_system_prompt(self.base_system, chunks)}
         convo = clamp_dialog(history + [{"role": "user",
