@@ -30,8 +30,41 @@ def _load_items(path: str, limit: int | None = None) -> List[Dict[str, Any]]:
             items.appends(json.loads(line))
             if limit is not None and len(items) >= limit:
                 break
-
     return items
+
+def __convert_items_to_ragas_format(items: List[Dict[str, Any]]
+                                    ) -> Dict[str, List[Any]]:
+    """Convert list of dicts items into RAGAS expected dict of lists structure.
+    
+    Output schema:
+    {
+        "question": List[str],
+        "answer": List[str],
+        "context": List[List[str]],
+        "ground_truth": [List[str]]
+    """
+    questions: List[str] = [],
+    answers: List[str] = [],
+    contexts: List[List[str]] = [],
+    ground_truths: List[str] = []
+
+    for it in items:
+        questions.append(it["question"].strip())
+        answers.append(it["answer"].strip())
+        ctx = it.get("contexts", [])
+        if not isinstance(ctx, list):
+            ctx = [str(ctx)] if ctx else []
+        contexts.append([str(c) for c in ctx])
+        gt = it.get("ground_truth", "")
+        ground_truths.append(str(gt) if gt is not None else "")
+
+    return {
+        "question": questions,
+        "answer": answers,
+        "context": contexts,
+        "ground_truth": ground_truths
+    }
+
 def main() -> None:
     """Entry point for model evaluation CLI."""
     evaluater = RAGEvaluationUseCase(
