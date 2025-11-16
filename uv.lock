@@ -738,6 +738,15 @@ wheels = [
 ]
 
 [[package]]
+name = "httpx-sse"
+version = "0.4.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/4c/751061ffa58615a32c31b2d82e8482be8dd4a89154f003147acee90f2be9/httpx_sse-0.4.3.tar.gz", hash = "sha256:9b1ed0127459a66014aec3c56bebd93da3c1bc8bb6618c8082039a44889a755d", size = 15943, upload-time = "2025-10-10T21:48:22.271Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/fd/6668e5aec43ab844de6fc74927e155a3b37bf40d7c3790e49fc0406b6578/httpx_sse-0.4.3-py3-none-any.whl", hash = "sha256:0ac1c9fe3c0afad2e0ebb25a934a59f4c7823b60792691f779fad2c5568830fc", size = 8960, upload-time = "2025-10-10T21:48:21.158Z" },
+]
+
+[[package]]
 name = "huggingface-hub"
 version = "0.36.0"
 source = { registry = "https://pypi.org/simple" }
@@ -871,6 +880,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b4/96/b298cb46643bb235240de7ec8d87d3b4ccefead6bf41ca3c48c7d5397e01/langchain_core-1.0.2.tar.gz", hash = "sha256:9aae1908cc00d50b88e812305e980e7fd06d07375590ce8da01c04037bdccd72", size = 769167, upload-time = "2025-10-29T23:13:02.732Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/52/54/3aed89938a42cf7115575c333647551e35adc380feed651105d2d86c22f5/langchain_core-1.0.2-py3-none-any.whl", hash = "sha256:1f4ab4a41fc2e135e5dd4b97a89af123bbdc535af8f1f0644e8e8801bc288a12", size = 469251, upload-time = "2025-10-29T23:13:00.864Z" },
+]
+
+[[package]]
+name = "langchain-mistralai"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "langchain-core" },
+    { name = "pydantic" },
+    { name = "tokenizers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/d0/42aefe12d072a31d7d1a76bc79308e6ff9df5f8a1fdf409b365ce29fe83b/langchain_mistralai-1.0.1.tar.gz", hash = "sha256:4770e4e1f6181c073d0d1c935e50ac8d824eee5169f83abee0955963c54c2b71", size = 139557, upload-time = "2025-10-24T13:55:40.35Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e6/5e/d1ed75e38ce431c49b609a524fc178ecbc38cc0a3ba44b5c3b935d82d824/langchain_mistralai-1.0.1-py3-none-any.whl", hash = "sha256:1777de4ceef3d3d5b2d08ab7cf6ce2d27188469eeae4d09756fd3b08ea3751a6", size = 17843, upload-time = "2025-10-24T13:55:39.358Z" },
 ]
 
 [[package]]
@@ -2179,6 +2204,7 @@ dependencies = [
     { name = "dotenv" },
     { name = "faiss-cpu" },
     { name = "flake8" },
+    { name = "langchain-mistralai" },
     { name = "langchain-text-splitters" },
     { name = "mistralai" },
     { name = "numpy" },
@@ -2195,6 +2221,7 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "faiss-cpu", specifier = ">=1.12.0" },
     { name = "flake8", specifier = ">=7.3.0" },
+    { name = "langchain-mistralai", specifier = ">=1.0.1" },
     { name = "langchain-text-splitters", specifier = ">=1.0.0" },
     { name = "mistralai", specifier = ">=1.9.11" },
     { name = "numpy", specifier = ">=2.3.4" },
