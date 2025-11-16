@@ -1,8 +1,7 @@
 import json
-import pathlib
 import time
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Dict, Tuple
 
 import pandas as pd
@@ -24,6 +23,11 @@ from src.rag.infrastructure.evaluation.ragas_evaluator import RagasEvaluator
 
 from src.rag.infrastructure.llm.langchain_mistral_client import LGMistralLLM
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
+
+from src.rag.application.ports.evaluation_storage import RunModels
+from src.rag.infrastructure.storage.evaluation_run_store import (
+    FileSystemStorage,
+)
 
 
 DEFAULT_INPUT_PATH = "logs/interactions/interactions.jsonl"
@@ -224,54 +228,6 @@ def _run_single_pass(
     )
 
 
-def _write_pass_outputs(
-    outdir: pathlib.Path,
-    pass_idx: int,
-    df_samples: pd.DataFrame,
-    metric_cols: List[str],
-    llm: LGMistralLLM,
-    emb: MistralEmbedder,
-) -> None:
-    """Write per-sample, summary, and manifest for a given pass.
-
-    Args:
-        outdir: Root output directory for the run date.
-        pass_idx: Pass index starting at 1.
-        df_samples: Per-sample results to persist.
-        metric_cols: Metric columns to summarize.
-        llm: Chat model client (for manifest).
-        emb: Embedding model client (for manifest).
-    """
-    pass_dir = outdir / f"pass_{pass_idx}"
-    pass_dir.mkdir(parents=True, exist_ok=True)
-
-    df_samples.to_csv(pass_dir / "per_sample.csv", index=False)
-    summary = _compute_summary(df_samples, metric_cols)
-    pd.Series(summary).to_csv(pass_dir / "summary.csv")
-
-    total = len(df_samples)
-    failed = int(df_samples[metric_cols].isna().any(axis=1).sum())
-    success = total - failed
-
-    manifest = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "models": {"llm": llm.model, "embeddings": emb.model},
-        "llm_max_retries": LLM_MAX_RETRIES,
-        "retry_passes": pass_idx - 1,
-        "retry_sleep": RETRY_SLEEP_SECONDS,
-        "items_total": int(total),
-        "items_success": int(success),
-        "items_failed": int(failed),
-        "metrics": summary,
-    }
-    with open(
-        pass_dir / f"run_manifest_pass_{pass_idx}.json",
-        "w",
-        encoding="utf-8",
-    ) as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
-
-
 def _retry_failed_items(
     base_df: pd.DataFrame,
     initial_df_samples: pd.DataFrame,
@@ -280,7 +236,7 @@ def _retry_failed_items(
     llm: LGMistralLLM,
     emb: MistralEmbedder,
     evaluator: Evaluator,
-    outdir: pathlib.Path,
+    run,
     start_pass_idx: int,
 ) -> pd.DataFrame:
     """Retry only failed items across several passes and persist outputs.
@@ -293,7 +249,7 @@ def _retry_failed_items(
         llm: Chat model client.
         emb: Embedding model client.
         evaluator: Evaluator implementation.
-        outdir: Root output directory for dated run.
+        run: Run storage object to write outputs.
         start_pass_idx: The index of the initial pass (usually 1).
 
     Returns:
@@ -346,8 +302,18 @@ def _retry_failed_items(
                 df_samples.drop(columns=[retry_col], inplace=True)
 
         pass_idx += 1
-        _write_pass_outputs(outdir, pass_idx, df_samples, metric_cols,
-                            llm, emb)
+        run.write_pass(
+            pass_idx=pass_idx,
+            df_samples=df_samples,
+            metric_cols=metric_cols,
+            models=RunModels(
+                llm=getattr(llm, "model", str(llm)),
+                embeddings=getattr(emb, "model", str(emb)),
+            ),
+            llm_max_retries=LLM_MAX_RETRIES,
+            retry_passes_done=pass_idx - 1,
+            retry_sleep_seconds=RETRY_SLEEP_SECONDS,
+        )
 
     return df_samples
 
@@ -376,12 +342,23 @@ def main() -> None:
     evaluator = _init_evaluator()
 
     date_str = datetime.now().strftime("%Y-%m-%d")
-    outdir = pathlib.Path(f"{DEFAULT_OUT_ROOT}/{date_str}")
-    outdir.mkdir(parents=True, exist_ok=True)
+    storage = FileSystemStorage(DEFAULT_OUT_ROOT)
+    run = storage.create_run(date_str)
 
     # Initial pass (pass 1)
     df_samples = _run_single_pass(ds, metrics, llm, emb, evaluator)
-    _write_pass_outputs(outdir, 1, df_samples, metric_cols, llm, emb)
+    run.write_pass(
+        pass_idx=1,
+        df_samples=df_samples,
+        metric_cols=metric_cols,
+        models=RunModels(
+            llm=getattr(llm, "model", str(llm)),
+            embeddings=getattr(emb, "model", str(emb)),
+        ),
+        llm_max_retries=LLM_MAX_RETRIES,
+        retry_passes_done=0,
+        retry_sleep_seconds=RETRY_SLEEP_SECONDS,
+    )
 
     # Retry passes (pass 2..N)
     df_samples = _retry_failed_items(
@@ -392,7 +369,7 @@ def main() -> None:
         llm=llm,
         emb=emb,
         evaluator=evaluator,
-        outdir=outdir,
+        run=run,
         start_pass_idx=1,
     )
 
