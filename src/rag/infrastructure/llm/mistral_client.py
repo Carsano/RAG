@@ -71,27 +71,6 @@ class MistralLLM(LLM):
         )
         return resp.choices[0].message.content
 
-    def generate(self, prompt: str, **kwargs) -> str:
-        """Compatibility shim for evaluators expecting `.generate`.
-
-        Accepts extra keyword args (e.g., n, temperature, max_tokens) and
-        ignores those that are not supported by the underlying client.
-        """
-        if not self.client:
-            raise RuntimeError("Client Mistral indisponible.")
-
-        messages = [{"role": "user", "content": prompt}]
-        resp = self.client.chat.complete(
-            model=self.chat_model,
-            messages=messages,
-            temperature=kwargs.get("temperature",
-                                   self.args.get("temperature", 0.2)),
-            max_tokens=kwargs.get("max_tokens",
-                                  self.args.get("max_tokens", 300)),
-            top_p=kwargs.get("top_p", self.args.get("top_p", 0.22)),
-        )
-        return resp.choices[0].message.content
-
 
 __all__ = [
     "MistralLLM"
