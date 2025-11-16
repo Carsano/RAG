@@ -37,7 +37,7 @@ class MistralEmbedder(Embedder):
         if not api_key:
             raise RuntimeError("MISTRAL_API_KEY missing from environment")
         self.client = Mistral(api_key=api_key)
-        self.model = model
+        self._model = model
         self.delay = delay
 
     def embed(self, text: str) -> Optional[List[float]]:
@@ -106,6 +106,11 @@ class MistralEmbedder(Embedder):
         """
         results = self.embed_batch(texts)
         return [r if r is not None else [] for r in results]
+
+    @property
+    def model(self) -> str:
+        """Return the model name (read-only)."""
+        return self._model
 
 
 __all__ = [
