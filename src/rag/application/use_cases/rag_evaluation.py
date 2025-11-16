@@ -9,13 +9,18 @@ import pandas as pd
 from datasets import Dataset
 from dotenv import load_dotenv
 
-from ragas import evaluate
 from ragas.metrics import (
     faithfulness,
     answer_relevancy,
     context_precision,
     context_recall,
 )
+
+from src.rag.application.ports.evaluator import (
+    Evaluator,
+    EvaluatorOptions,
+)
+from src.rag.infrastructure.evaluation.ragas_evaluator import RagasEvaluator
 
 from src.rag.infrastructure.llm.langchain_mistral_client import LGMistralLLM
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
@@ -136,6 +141,15 @@ def _init_clients() -> Tuple[LGMistralLLM, MistralEmbedder]:
     return llm, emb
 
 
+def _init_evaluator() -> Evaluator:
+    """Initialize the evaluator implementation.
+
+    Returns:
+        An Evaluator implementation.
+    """
+    return RagasEvaluator()
+
+
 def _select_metrics(has_reference: bool) -> List:
     """Select evaluation metrics based on reference availability.
 
@@ -199,18 +213,19 @@ def _run_single_pass(
         metrics: Metrics to compute.
         llm: Chat model client.
         emb: Embedding model client.
+        evaluator: Evaluator implementation.
 
     Returns:
         A DataFrame of per-sample metrics from ragas.
     """
-    scores = evaluate(
-        ds,
+    opts = EvaluatorOptions(raise_exceptions=False)
+    return evaluator.evaluate(
+        ds=ds,
         metrics=metrics,
         llm=llm,
         embeddings=emb,
-        raise_exceptions=False,
+        options=opts,
     )
-    return scores.to_pandas()
 
 
 def _write_pass_outputs(
@@ -268,6 +283,7 @@ def _retry_failed_items(
     metric_cols: List[str],
     llm: LGMistralLLM,
     emb: MistralEmbedder,
+    evaluator: Evaluator,
     outdir: pathlib.Path,
     start_pass_idx: int,
 ) -> pd.DataFrame:
@@ -280,6 +296,7 @@ def _retry_failed_items(
         metric_cols: Metric columns to check/merge.
         llm: Chat model client.
         emb: Embedding model client.
+        evaluator: Evaluator implementation.
         outdir: Root output directory for dated run.
         start_pass_idx: The index of the initial pass (usually 1).
 
@@ -306,7 +323,13 @@ def _retry_failed_items(
 
         time.sleep(RETRY_SLEEP_SECONDS)
 
-        df_retry = _run_single_pass(failed_ds, metrics, llm, emb)
+        df_retry = _run_single_pass(
+            failed_ds,
+            metrics,
+            llm,
+            emb,
+            evaluator,
+        )
         if "row_id" not in df_retry.columns:
             df_retry.insert(
                 0,
@@ -359,13 +382,14 @@ def main() -> None:
     metric_cols = [m.name for m in metrics]
 
     llm, emb = _init_clients()
+    evaluator = _init_evaluator()
 
     date_str = datetime.now().strftime("%Y-%m-%d")
     outdir = pathlib.Path(f"{DEFAULT_OUT_ROOT}/{date_str}")
     outdir.mkdir(parents=True, exist_ok=True)
 
     # Initial pass (pass 1)
-    df_samples = _run_single_pass(ds, metrics, llm, emb)
+    df_samples = _run_single_pass(ds, metrics, llm, emb, evaluator)
     _write_pass_outputs(outdir, 1, df_samples, metric_cols, llm, emb)
 
     # Retry passes (pass 2..N)
@@ -376,6 +400,7 @@ def main() -> None:
         metric_cols=metric_cols,
         llm=llm,
         emb=emb,
+        evaluator=evaluator,
         outdir=outdir,
         start_pass_idx=1,
     )
