@@ -23,3 +23,14 @@ class RagasEvaluater(Evaluater):
 
     def evaluate(self, evaluation_data: dict) -> dict:
         """Evaluae the given data and return evaluation results."""
+        return ragas.evaluate(
+            dataset=evaluation_data,
+            metrics=[
+                faithfulness,
+                answer_relevancy,
+                context_precision,
+                context_recall
+            ],
+            llm=self.llm_model,
+            embeddings=self.embedder
+        )
