@@ -34,7 +34,7 @@ def _load_items(path: str, limit: int | None = None) -> List[Dict[str, Any]]:
         for line in f:
             if not line.strip():
                 continue
-            items.appends(json.loads(line))
+            items.append(json.loads(line))
             if limit is not None and len(items) >= limit:
                 break
     return items
