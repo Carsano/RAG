@@ -77,7 +77,8 @@ class LGMistralLLM(LLM):
         )
 
     @property
-    def model_name(self) -> str:
+    def model(self) -> str:
+        """Return the underlying model identifier."""
         return self._model
 
     def chat(
