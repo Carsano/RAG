@@ -17,9 +17,8 @@ from ragas.metrics import (
     context_recall,
 )
 
-from langchain_mistralai.embeddings import MistralAIEmbeddings
-
 from src.rag.infrastructure.llm.langchain_mistral_client import LGMistralLLM
+from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 
 
 DEFAULT_INPUT_PATH = "logs/interactions/interactions.jsonl"
@@ -107,11 +106,11 @@ def _compute_summary(df_samples: pd.DataFrame, metric_cols: List[str]) -> Dict:
     return summary
 
 
-def _init_clients() -> Tuple[LGMistralLLM, MistralAIEmbeddings]:
+def _init_clients() -> Tuple[LGMistralLLM, MistralEmbedder]:
     """Initialize Mistral LLM and embedding clients from environment.
 
     Returns:
-        Tuple of (LGMistralLLM, MistralAIEmbeddings).
+        Tuple of (LGMistralLLM, MistralEmbedder).
 
     Raises:
         SystemExit: If required environment variables are missing.
@@ -133,7 +132,7 @@ def _init_clients() -> Tuple[LGMistralLLM, MistralAIEmbeddings]:
         max_retries=LLM_MAX_RETRIES,
     )
     llm = llm_port.as_langchain()
-    emb = MistralAIEmbeddings(model=embed_model, api_key=api_key)
+    emb = MistralEmbedder(model=embed_model)
     return llm, emb
 
 
@@ -191,7 +190,7 @@ def _run_single_pass(
     ds: Dataset,
     metrics: List,
     llm: LGMistralLLM,
-    emb: MistralAIEmbeddings,
+    emb: MistralEmbedder,
 ) -> pd.DataFrame:
     """Execute a single evaluation pass and return the per-sample DataFrame.
 
@@ -220,7 +219,7 @@ def _write_pass_outputs(
     df_samples: pd.DataFrame,
     metric_cols: List[str],
     llm: LGMistralLLM,
-    emb: MistralAIEmbeddings,
+    emb: MistralEmbedder,
 ) -> None:
     """Write per-sample, summary, and manifest for a given pass.
 
@@ -268,7 +267,7 @@ def _retry_failed_items(
     metrics: List,
     metric_cols: List[str],
     llm: LGMistralLLM,
-    emb: MistralAIEmbeddings,
+    emb: MistralEmbedder,
     outdir: pathlib.Path,
     start_pass_idx: int,
 ) -> pd.DataFrame:
