@@ -41,19 +41,22 @@ def _load_items(path: str, limit: int | None = None) -> List[Dict[str, Any]]:
 
 
 def _convert_items_to_ragas_format(items: List[Dict[str, Any]]
-                                   ) -> Dict[str, List[Any]]:
-    """Convert list of dicts items into RAGAS expected dict of lists structure.
+                                   ) -> datasets.Dataset:
+    """Convert list of dicts items into a RAGAS-compatible
+    Hugging Face Dataset.
 
-    Output schema:
-    {
-        "question": List[str],
-        "answer": List[str],
-        "context": List[List[str]],
-        "ground_truth": [List[str]]
+    Output schema columns:
+    - "question": List[str]
+    - "answer": List[str]
+    - "contexts": List[List[str]]
+    - "ground_truth": List[str]
+
+    Returns:
+        datasets.Dataset: Dataset with required columns for ragas.evaluate.
     """
     questions: List[str] = []
     answers: List[str] = []
-    contexts: List[List[str]] = []
+    contexts_list: List[List[str]] = []
     ground_truths: List[str] = []
 
     for it in items:
@@ -62,20 +65,21 @@ def _convert_items_to_ragas_format(items: List[Dict[str, Any]]
         ctx = it.get("contexts", [])
         if not isinstance(ctx, list):
             ctx = [str(ctx)] if ctx else []
-        contexts.append([str(c) for c in ctx])
+        contexts_list.append([str(c) for c in ctx])
         gt = it.get("ground_truth", "")
         ground_truths.append(str(gt) if gt is not None else "")
 
-    return {
+    data = {
         "question": questions,
         "answer": answers,
-        "context": contexts,
-        "ground_truth": ground_truths
+        "contexts": contexts_list,
+        "ground_truth": ground_truths,
     }
+    return datasets.Dataset.from_dict(data)
 
 
 def _prepare_evaluation_data(path: str, limit: int | None = None
-                             ) -> Dict[str, List[Any]]:
+                             ) -> datasets.Dataset:
     """Prepare evaluation data from file path into RAGAS format.
 
     Args:
@@ -83,7 +87,7 @@ def _prepare_evaluation_data(path: str, limit: int | None = None
         limit (int | None): Optional limit on number of items to load.
 
     Returns:
-        dict: Evaluation data in RAGAS format.
+        datasets.Dataset: Evaluation data in RAGAS format.
     """
     root = get_project_root()
     full_path = root / path
