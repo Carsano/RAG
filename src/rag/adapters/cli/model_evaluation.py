@@ -11,6 +11,7 @@ import datasets
 
 from src.rag.application.use_cases.rag_evaluation import RAGEvaluationUseCase
 
+from src.rag.infrastructure.config.config import AppConfig
 from src.rag.infrastructure.evaluation.ragas_evaluater import RagasEvaluater
 from src.rag.infrastructure.llm.mistral_client import MistralLLM
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
@@ -118,10 +119,12 @@ def _print_evaluation_results(results: dict) -> None:
 
 def main() -> None:
     """Entry point for model evaluation CLI."""
+    cfg = AppConfig.load()
     evaluater = RAGEvaluationUseCase(
         evaluater=RagasEvaluater(
-            llm_model=MistralLLM(),
-            embedder=MistralEmbedder()
+            llm_model=MistralLLM(chat_model=cfg.chat_model,
+                                 completion_args=cfg.completion_args),
+            embedder=MistralEmbedder(model=cfg.embed_model, delay=0.0)
         )
     )
     evaluation_data = _prepare_evaluation_data(
