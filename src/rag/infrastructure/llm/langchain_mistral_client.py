@@ -110,3 +110,7 @@ class LGMistralLLM(LLM):
         resp = self._llm.invoke(lc_msgs, **kwargs)
         # Ensure we always return raw text
         return getattr(resp, "content", str(resp))
+
+    def as_langchain(self) -> ChatMistralAI:
+        """Return the underlying LangChain client."""
+        return self._llm
