@@ -139,3 +139,7 @@ def main() -> None:
     evaluation_logger.info(f"raw results extracted: {raw_results}")
     cleanded_results = _print_evaluation_results(raw_results)
     return cleanded_results
+
+
+if __name__ == "__main__":
+    main()
