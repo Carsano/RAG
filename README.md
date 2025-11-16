@@ -64,6 +64,7 @@ src
 │   ├── adapters                               # Input/output layer. Everything that interacts with the outside world
 │   │   ├── cli                                # Command-line interface (indexing, chat, etc.)
 │   │   │   ├── app.py
+│   │   │   ├── evaluation_rag_answers.py
 │   │   │   └── indexation_documentation.py
 │   │   └── ui                               # User interface (Streamlit or similar)
 │   │       └── chat_page.py
@@ -72,6 +73,8 @@ src
 │   │   │   ├── chunkers.py
 │   │   │   ├── converters.py
 │   │   │   ├── embedders.py
+│   │   │   ├── evaluation_storage.py
+│   │   │   ├── evaluator.py
 │   │   │   ├── indexer.py
 │   │   │   ├── llm.py
 │   │   │   ├── retriever.py
@@ -80,7 +83,8 @@ src
 │   │       ├── documents_indexer.py
 │   │       ├── intent_classifier.py
 │   │       ├── prompting.py
-│   │       └── rag_chat.py
+│   │       ├── rag_chat.py
+│   │       └── rag_evaluation.py
 │   ├── infrastructure                    # Technical implementations.
 │   │   ├── chunking                      # Splits documents into chunks.
 │   │   │   └── chunkers.py
@@ -91,12 +95,18 @@ src
 │   │   │   ├── converters.py
 │   │   │   └── default_exporter.py
 │   │   ├── embedders
+│   │   │   └── ragas_evaluator.py
+│   │   ├── evaluation
 │   │   │   ├── fake_embedder.py
 │   │   │   └── mistral_embedder.py
 │   │   ├── llm                           # LLM clients and embedding generators (Mistral, etc.)
+│   │   │   ├── langchain_mistral_client.py
 │   │   │   └── mistral_client.py
 │   │   ├── logging                       # Logging configuration and output format.
+│   │   │   ├── interaction_logger.py
 │   │   │   └── logger.py
+│   │   ├── storage                       # Storage evaluation
+│   │   │   └── evaluation_run_store.py
 │   │   └── vectorstores                  # Vector databases (FAISS, etc.)
 │   │       ├── faiss_store_manager.py
 │   │       ├── faiss_store_retriever.py
