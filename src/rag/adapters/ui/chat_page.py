@@ -62,9 +62,66 @@ class ChatPage:
     # ---------- rendering ----------
     def _render_history(self) -> None:
         """Render all messages from the chat history."""
-        for msg in st.session_state.messages:
+        for idx, msg in enumerate(st.session_state.messages):
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
+                # Add feedback controls only for assistant messages
+                if msg["role"] == "assistant" and not (
+                    idx == 0 and msg.get("content") == WELCOME
+                ):
+                    self._render_feedback(idx, msg)
+
+    def _render_feedback(self, idx: int, msg: ChatMessage) -> None:
+        """Render a thumbs feedback widget for an assistant message.
+
+        Args:
+          idx (int): Index of the message in the session history.
+          msg (ChatMessage): The assistant message to annotate with feedback.
+        """
+        # Unique keys per message to keep widget state stable across reruns
+        selection_key = f"fb_sel_{idx}"
+        comment_key = f"fb_comment_{idx}"
+        submitted_key = f"fb_submitted_{idx}"
+
+        # Display a compact feedback widget (built-in Streamlit)
+        selection = st.feedback("thumbs", key=selection_key)
+
+        # If user selected a rating, allow optional comment + submit
+        if selection is not None and not st.session_state.get(submitted_key):
+            # Map numeric selection to label for logging clarity
+            rating = "thumb_up" if selection == 1 else "thumb_down"
+            comment = st.text_input(
+                "Commentaire (optionnel)",
+                key=comment_key,
+                placeholder="Qu'est-ce qui était utile ou à améliorer ?",
+            )
+            if st.button("Envoyer le feedback", key=f"fb_send_{idx}"):
+                # Log structured feedback (format into a single string)
+                # that don't support printf-style args)
+                try:
+                    answer_preview = (msg.get(
+                        "content", "") or "").replace("\n", " ").strip()
+                    if len(answer_preview) > 400:
+                        answer_preview = answer_preview[:400] + "…"
+                    comment_preview = (
+                        comment or "").replace("\n", " ").strip()
+                    if len(comment_preview) > 400:
+                        comment_preview = comment_preview[:400] + "…"
+                    log_line = (
+                        f"Feedback | msg_index={idx} | rating={rating} "
+                        f"| comment={comment_preview} | "
+                        f"answer={answer_preview}"
+                    )
+                    self.usage_logger.info(log_line)
+                except Exception as e:  # Fallback in case the logger raises
+                    st.warning(f"Impossible d'enregistrer le feedback : {e}")
+                else:
+                    st.session_state[submitted_key] = True
+                    st.toast("Merci pour votre feedback.")
+
+        # If already submitted, show a subtle acknowledgement
+        if st.session_state.get(submitted_key):
+            st.caption("Feedback enregistré ✔︎")
 
     def _append(self, role: Role, content: str) -> None:
         """Append a message to the Streamlit session state.
@@ -103,7 +160,18 @@ class ChatPage:
                 self.usage_logger.error(f"User: {prompt} | Error: {e}")
             placeholder.write(reply)
 
-        self._append("assistant", reply)
+            self._append("assistant", reply)
+
+            # Immediately show feedback controls for the freshly rendered reply
+            try:
+                last_idx = len(st.session_state.messages) - 1
+                # We are still inside the assistant chat_message context
+                # so we can render inline
+                self._render_feedback(last_idx,
+                                      st.session_state.messages[last_idx])
+            except Exception:
+                # Fail-safe: do nothing if state is not yet consistent
+                pass
 
     # ---------- public ----------
     def render(self) -> None:
