@@ -15,6 +15,7 @@ from src.rag.infrastructure.config.config import AppConfig
 from src.rag.infrastructure.evaluation.ragas_evaluater import RagasEvaluater
 from src.rag.infrastructure.llm.mistral_client import MistralLLM
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
+from src.rag.infrastructure.logging.logger import get_evaluation_logger
 
 from src.rag.utils.utils import get_project_root
 
@@ -119,7 +120,10 @@ def _print_evaluation_results(results: dict) -> None:
 
 def main() -> None:
     """Entry point for model evaluation CLI."""
+    evaluation_logger = get_evaluation_logger()
+    evaluation_logger.info("CLI started by user")
     cfg = AppConfig.load()
+    evaluation_logger.info("Config loaded")
     evaluater = RAGEvaluationUseCase(
         evaluater=RagasEvaluater(
             llm_model=MistralLLM(chat_model=cfg.chat_model,
@@ -127,8 +131,11 @@ def main() -> None:
             embedder=MistralEmbedder(model=cfg.embed_model, delay=0.0)
         )
     )
+    evaluation_logger.info("Evaluater loaded")
     evaluation_data = _prepare_evaluation_data(
         path="logs/interactions/interactions.jsonl")
+    evaluation_logger.info(f"evaluation_data prepared: {evaluation_data}")
     raw_results = evaluater.execute(evaluation_data=evaluation_data)
+    evaluation_logger.info(f"raw results extracted: {raw_results}")
     cleanded_results = _print_evaluation_results(raw_results)
     return cleanded_results
