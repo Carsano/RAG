@@ -7,7 +7,8 @@ and a Fake implementation for tests.
 """
 from __future__ import annotations
 
-from typing import List, Optional, Protocol
+from typing import List, Optional, Protocol, Sequence
+Vector = List[float]
 
 
 class Embedder(Protocol):
@@ -36,3 +37,35 @@ class Embedder(Protocol):
         Returns:
             List[Optional[List[float]]]: Embeddings or None per item.
         """
+
+    def embed_documents(self, texts: Sequence[str]) -> List[Vector]:
+        """Embed multiple texts.
+
+        Args:
+            texts: Sequence of strings to embed.
+
+        Returns:
+            List of vectors, one per input text, same order.
+        """
+        ...
+
+    def embed_query(self, text: str) -> Vector:
+        """Embed a single query string.
+
+        Args:
+            text: Input string.
+
+        Returns:
+            Vector for the input text.
+        """
+        ...
+
+    @property
+    def model(self) -> str:
+        """Return the underlying model identifier."""
+        ...
+
+    @property
+    def dimension(self) -> Optional[int]:
+        """Return embedding dimensionality if known, else None."""
+        ...
