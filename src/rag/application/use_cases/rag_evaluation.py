@@ -195,16 +195,12 @@ def _prepare_dataset(rows: List[Dict]) -> Tuple[pd.DataFrame, Dataset, bool]:
     return df, ds, has_reference
 
 
-# -----------------------------------------------------------------------------
-# Evaluation passes & I/O
-# -----------------------------------------------------------------------------
-
-
 def _run_single_pass(
     ds: Dataset,
     metrics: List,
     llm: LGMistralLLM,
     emb: MistralEmbedder,
+    evaluator: Evaluator,
 ) -> pd.DataFrame:
     """Execute a single evaluation pass and return the per-sample DataFrame.
 
@@ -354,11 +350,6 @@ def _retry_failed_items(
                             llm, emb)
 
     return df_samples
-
-
-# -----------------------------------------------------------------------------
-# Orchestration (main)
-# -----------------------------------------------------------------------------
 
 
 def main() -> None:
