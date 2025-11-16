@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 import json
+import pandas as pd
+import datasets
 
 from src.rag.application.use_cases.rag_evaluation import RAGEvaluationUseCase
 
@@ -87,6 +89,31 @@ def _prepare_evaluation_data(path: str, limit: int | None = None
     return _convert_items_to_ragas_format(items)
 
 
+def _convert_results_to_df(results: dict) -> pd.DataFrame:
+    """Convert dict results into Pandas Dataframe
+
+    Args:
+        results (dict): Evaluation results to transform
+    """
+    results_df = datasets.Dataset.from_dict(results).to_pandas()
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', 1000)
+    pd.set_option('display.max_colwidth', 150)
+    return results_df
+
+
+def _print_evaluation_results(results: dict) -> None:
+    """Print evaluation results in a readable format.
+
+    Args:
+        results (dict): Evaluation results to print.
+    """
+    results_df = _convert_results_to_df(results)
+    print("\n--- Scores Moyens (sur tout le dataset) ---")
+    average_scores = results_df.mean(numeric_only=True)
+    print(average_scores)
+    return average_scores
 
 
 def main() -> None:
@@ -98,4 +125,6 @@ def main() -> None:
         )
     )
     evaluation_data = _prepare_evaluation_data()
-    results = evaluater.execute(evaluation_data=evaluation_data)
+    raw_results = evaluater.execute(evaluation_data=evaluation_data)
+    cleanded_results = _print_evaluation_results(raw_results)
+    return cleanded_results
