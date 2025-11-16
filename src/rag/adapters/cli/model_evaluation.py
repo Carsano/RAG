@@ -13,13 +13,16 @@ from src.rag.infrastructure.evaluation.ragas_evaluater import RagasEvaluater
 from src.rag.infrastructure.llm.mistral_client import MistralLLM
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 
+from src.rag.utils.utils import get_project_root
+
+
 def _load_items(path: str, limit: int | None = None) -> List[Dict[str, Any]]:
     """Load evaluation items from a given path.
-    
+
     Args:
         path (str): Path to the evaluation data.
         limit (int | None): Optional limit on number of items to load.
-        
+
     Returns:
         dict: Loaded evaluation data."""
     items = []
@@ -32,10 +35,11 @@ def _load_items(path: str, limit: int | None = None) -> List[Dict[str, Any]]:
                 break
     return items
 
-def __convert_items_to_ragas_format(items: List[Dict[str, Any]]
-                                    ) -> Dict[str, List[Any]]:
+
+def _convert_items_to_ragas_format(items: List[Dict[str, Any]]
+                                   ) -> Dict[str, List[Any]]:
     """Convert list of dicts items into RAGAS expected dict of lists structure.
-    
+
     Output schema:
     {
         "question": List[str],
@@ -65,6 +69,26 @@ def __convert_items_to_ragas_format(items: List[Dict[str, Any]]
         "ground_truth": ground_truths
     }
 
+
+def _prepare_evaluation_data(path: str, limit: int | None = None
+                             ) -> Dict[str, List[Any]]:
+    """Prepare evaluation data from file path into RAGAS format.
+
+    Args:
+        path (str): Path to the evaluation data file.
+        limit (int | None): Optional limit on number of items to load.
+
+    Returns:
+        dict: Evaluation data in RAGAS format.
+    """
+    root = get_project_root()
+    full_path = root / path
+    items = _load_items(str(full_path), limit=limit)
+    return _convert_items_to_ragas_format(items)
+
+
+
+
 def main() -> None:
     """Entry point for model evaluation CLI."""
     evaluater = RAGEvaluationUseCase(
@@ -73,4 +97,5 @@ def main() -> None:
             embedder=MistralEmbedder()
         )
     )
-    evaluater.execute(evaluation_data=)
+    evaluation_data = _prepare_evaluation_data()
+    results = evaluater.execute(evaluation_data=evaluation_data)
