@@ -73,7 +73,8 @@ def _load_and_normalize_jsonl(path: str) -> List[Dict]:
     return rows
 
 
-def _compute_failed_mask(df_res: pd.DataFrame, metric_cols: List[str]) -> pd.Series:
+def _compute_failed_mask(df_res: pd.DataFrame, metric_cols: List[str]
+                         ) -> pd.Series:
     """Return a mask for rows that have at least one NaN metric.
 
     Args:
