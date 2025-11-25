@@ -179,23 +179,24 @@ class ChatPage:
         with st.chat_message("assistant"):
             placeholder = st.empty()
             placeholder.markdown("_En cours..._")
-            try:
-                reply = self.service.answer(
-                    history=st.session_state.messages,
-                    question=prompt,
-                )
-                answer = reply["answer"]
-                self.usage_logger.info(
-                    f"User: {prompt} | Response: {answer}"
-                )
-            except Exception as e:
-                answer = (
-                    f"Erreur lors de la génération de la réponse : {e}"
-                )
-                self.usage_logger.error(
-                    f"User: {prompt} | Error: {e}"
-                )
+            reply = self.service.answer(
+                history=st.session_state.messages,
+                question=prompt,
+            )
+            answer = reply["answer"]
+            self.usage_logger.info(
+                f"User: {prompt} | Response: {answer}"
+            )
             placeholder.write(answer)
+            self.usage_logger.info(reply)
+            # Display RAG sources if present
+            sources = reply["sources"]
+            if sources:
+                with st.expander("Sources citées"):
+                    for src in sources:
+                        title = src.get("title", "")
+                        snippet = src.get("snippet", "")
+                        st.markdown(f"- **{title}**: {snippet}")
 
             # Persist the assistant message before rendering feedback
             self._append("assistant", answer)

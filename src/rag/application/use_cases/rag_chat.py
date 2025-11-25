@@ -59,8 +59,8 @@ class RAGChatService:
         intent = self.intent_classifier.classify(question)
         retrievings = self.retriever.retrieve(question,
                                               k=5) if intent == "rag" else []
-        chunks = retrievings.get("chunks")
-        sources = retrievings.get("sources")
+        chunks = [item["content"] for item in retrievings]
+        sources = [item["source"] for item in retrievings]
         system = {"role": "system",
                   "content": build_system_prompt(self.base_system, chunks)}
         convo = clamp_dialog(history + [{"role": "user",
@@ -68,7 +68,7 @@ class RAGChatService:
         reply = self.llm.chat([system] + convo)
 
         # Prepare contexts as plain strings for logging
-        contexts_for_log = [getattr(c, "content", str(c)) for c in chunks]
+        contexts_for_log = chunks
 
         # Log the interaction if a logger is configured
         if getattr(self, "interaction_logger", None):
