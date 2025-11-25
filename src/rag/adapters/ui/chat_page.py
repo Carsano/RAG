@@ -184,22 +184,23 @@ class ChatPage:
                     history=st.session_state.messages,
                     question=prompt,
                 )
+                answer = reply["answer"]
                 self.usage_logger.info(
-                    f"User: {prompt} | Response: {reply}"
+                    f"User: {prompt} | Response: {answer}"
                 )
             except Exception as e:
-                reply = (
+                answer = (
                     f"Erreur lors de la génération de la réponse : {e}"
                 )
                 self.usage_logger.error(
                     f"User: {prompt} | Error: {e}"
                 )
-            placeholder.write(reply)
+            placeholder.write(answer)
 
             # Persist the assistant message before rendering feedback
-            self._append("assistant", reply)
+            self._append("assistant", answer)
 
-            # Immediately show feedback controls for this reply
+            # Immediately show feedback controls for this answer
             try:
                 last_idx = len(st.session_state.messages) - 1
                 self._render_feedback(
@@ -209,7 +210,7 @@ class ChatPage:
                 # Fail-safe: ignore UI errors on reruns
                 pass
 
-            return reply
+            return answer
 
     # ---------- public ----------
     def render(self) -> None:
