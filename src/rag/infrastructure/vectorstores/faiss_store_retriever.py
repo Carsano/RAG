@@ -55,7 +55,7 @@ class FaissRetriever(Retriever):
             src = sources[idx] if idx < len(sources) else ""
             results.append(
                 {
-                    "content": chunk,
+                    "chunks": chunk,
                     "source": src,
                 }
             )

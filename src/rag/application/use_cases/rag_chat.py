@@ -57,8 +57,10 @@ class RAGChatService:
           dict: The model's answer and sources.
         """
         intent = self.intent_classifier.classify(question)
-        chunks = self.retriever.retrieve(question,
-                                         k=5) if intent == "rag" else []
+        retrievings = self.retriever.retrieve(question,
+                                              k=5) if intent == "rag" else []
+        chunks = retrievings.get("chunks")
+        sources = retrievings.get("sources")
         system = {"role": "system",
                   "content": build_system_prompt(self.base_system, chunks)}
         convo = clamp_dialog(history + [{"role": "user",
