@@ -7,8 +7,6 @@ from src.rag.application.ports.embedders import Embedder
 from src.rag.application.ports.vector_store_manager import VectorStoreManager
 from src.rag.application.ports.retriever import Retriever
 
-import json
-
 
 class FaissRetriever(Retriever):
     """Retrieve relevant chunks from a FAISS-based vector store."""
@@ -42,13 +40,7 @@ class FaissRetriever(Retriever):
 
         chunks = self.store.get_chunks(ids)
 
-        # Load sources from JSON if available
-        sources = []
-        try:
-            with open(self.store.sources_path, "r", encoding="utf-8") as f:
-                sources = json.load(f)
-        except Exception:
-            sources = []
+        sources = getattr(self.store, "sources", [])
 
         results = []
         for idx, chunk in zip(ids, chunks):
