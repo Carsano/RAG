@@ -40,17 +40,12 @@ class FaissRetriever(Retriever):
 
         chunks = self.store.get_chunks(ids)
 
-        sources = getattr(self.store, "sources", [])
+        sources = self.store.get_sources(ids)
 
-        results = []
-        for idx, chunk in zip(ids, chunks):
-            src = sources[idx] if idx < len(sources) else ""
-            results.append(
-                {
-                    "content": chunk,
-                    "source": src,
-                }
-            )
+        results = [
+            {"content": chunk, "source": src}
+            for chunk, src in zip(chunks, sources)
+        ]
 
         return results
 

@@ -95,6 +95,19 @@ class FaissStore(VectorStoreManager):
             self.documents[i] for i in ids if 0 <= i < len(self.documents)
             ]
 
+    def get_sources(self, ids: List[int]) -> List[str]:
+        """Retrieve document sources by their indices.
+
+        Args:
+            ids (List[int]): List of document chunk indices.
+
+        Returns:
+            List[str]: List of document sources corresponding to the given ids.
+        """
+        return [
+            self.sources[i] for i in ids if 0 <= i < len(self.sources)
+        ]
+
 
 __all__ = [
     "FaissStore"
