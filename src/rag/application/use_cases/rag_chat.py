@@ -80,19 +80,16 @@ class RAGChatService:
             )
 
         # Build structured result for UI
-        sources = []
-        for c in chunks:
-            src_title = getattr(c, "source", None)
-            src_content = getattr(c, "content", None)
-            if src_title or src_content:
-                sources.append(
-                    {
-                        "title": src_title if src_title else "",
-                        "snippet": src_content if src_content else "",
-                    }
-                )
+        final_sources = []
+        for content, src in zip(chunks, sources):
+            final_sources.append(
+                {
+                    "title": src,
+                    "snippet": content,
+                }
+            )
 
         return {
             "answer": reply,
-            "sources": sources,
+            "sources": final_sources,
         }
