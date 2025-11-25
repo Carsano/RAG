@@ -179,27 +179,30 @@ class ChatPage:
         with st.chat_message("assistant"):
             placeholder = st.empty()
             placeholder.markdown("_En cours..._")
-            try:
-                reply = self.service.answer(
-                    history=st.session_state.messages,
-                    question=prompt,
-                )
-                self.usage_logger.info(
-                    f"User: {prompt} | Response: {reply}"
-                )
-            except Exception as e:
-                reply = (
-                    f"Erreur lors de la génération de la réponse : {e}"
-                )
-                self.usage_logger.error(
-                    f"User: {prompt} | Error: {e}"
-                )
-            placeholder.write(reply)
+            reply = self.service.answer(
+                history=st.session_state.messages,
+                question=prompt,
+            )
+            answer = reply["answer"]
+            self.usage_logger.info(
+                f"User: {prompt} | Response: {answer}"
+            )
+            placeholder.write(answer)
+            self.usage_logger.info(reply)
+            # Display RAG sources if present
+            sources = reply["sources"]
+            if sources:
+                with st.expander("Sources citées"):
+                    for src in sources:
+                        title = src.get("title", "")
+                        snippet = src.get("snippet", "")
+                        with st.expander(f"Source: {title}"):
+                            st.markdown(snippet)
 
             # Persist the assistant message before rendering feedback
-            self._append("assistant", reply)
+            self._append("assistant", answer)
 
-            # Immediately show feedback controls for this reply
+            # Immediately show feedback controls for this answer
             try:
                 last_idx = len(st.session_state.messages) - 1
                 self._render_feedback(
@@ -209,7 +212,7 @@ class ChatPage:
                 # Fail-safe: ignore UI errors on reruns
                 pass
 
-            return reply
+            return answer
 
     # ---------- public ----------
     def render(self) -> None:

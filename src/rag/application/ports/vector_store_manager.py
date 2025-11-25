@@ -34,3 +34,14 @@ class VectorStoreManager(Protocol):
             List[str]: Corresponding document chunks.
         """
         ...
+
+    def get_sources(self, ids: List[int]) -> List[str]:
+        """Retrieve document sources by their indices.
+
+        Args:
+            ids (List[int]): List of document chunk indices.
+
+        Returns:
+            List[str]: List of document sources corresponding to the given ids.
+        """
+        ...

@@ -13,6 +13,7 @@ class Retriever(Protocol):
             k (int): Number of top chunks to return.
 
         Returns:
-            List[str]: Retrieved text chunks sorted by relevance.
+            List[dict]: Retrieved chunks,
+            each containing 'content' and 'source'.
         """
         ...

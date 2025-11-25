@@ -42,7 +42,7 @@ class RAGChatService:
         self.intent_classifier = intent_classifier
         self.interaction_logger = interaction_logger
 
-    def answer(self, history: List[dict], question: str) -> str:
+    def answer(self, history: List[dict], question: str) -> dict:
         """Generate an answer using history and optional retrieval.
 
         The method classifies intent. If the intent is "rag", it retrieves
@@ -54,11 +54,13 @@ class RAGChatService:
           question (str): Current user question.
 
         Returns:
-          str: The model's answer.
+          dict: The model's answer and sources.
         """
         intent = self.intent_classifier.classify(question)
-        chunks = self.retriever.retrieve(question,
-                                         k=5) if intent == "rag" else []
+        retrievings = self.retriever.retrieve(question,
+                                              k=5) if intent == "rag" else []
+        chunks = [item["content"] for item in retrievings]
+        sources = [item["source"] for item in retrievings]
         system = {"role": "system",
                   "content": build_system_prompt(self.base_system, chunks)}
         convo = clamp_dialog(history + [{"role": "user",
@@ -66,7 +68,7 @@ class RAGChatService:
         reply = self.llm.chat([system] + convo)
 
         # Prepare contexts as plain strings for logging
-        contexts_for_log = [getattr(c, "content", str(c)) for c in chunks]
+        contexts_for_log = chunks
 
         # Log the interaction if a logger is configured
         if getattr(self, "interaction_logger", None):
@@ -77,4 +79,17 @@ class RAGChatService:
                 ground_truth=""
             )
 
-        return reply
+        # Build structured result for UI
+        final_sources = []
+        for content, src in zip(chunks, sources):
+            final_sources.append(
+                {
+                    "title": src,
+                    "snippet": content,
+                }
+            )
+
+        return {
+            "answer": reply,
+            "sources": final_sources,
+        }

@@ -21,7 +21,7 @@ class FaissRetriever(Retriever):
         self.embedder = embedder
         self.store = store
 
-    def retrieve(self, query: str, k: int = 10) -> List[str]:
+    def retrieve(self, query: str, k: int = 10) -> List[dict]:
         """Embed the query and retrieve top-k relevant chunks.
 
         Args:
@@ -29,14 +29,25 @@ class FaissRetriever(Retriever):
             k (int): Number of top chunks to return.
 
         Returns:
-            List[str]: Retrieved chunks.
+            List[dict]: Retrieved chunks,
+            each containing 'content' and 'source'.
         """
         emb = self.embedder.embed(query)
         if emb is None:
             raise RuntimeError("Embedding failed in FaissRetriever")
 
         ids, _ = self.store.search(emb, k=k)
-        return self.store.get_chunks(ids)
+
+        chunks = self.store.get_chunks(ids)
+
+        sources = self.store.get_sources(ids)
+
+        results = [
+            {"content": chunk, "source": src}
+            for chunk, src in zip(chunks, sources)
+        ]
+
+        return results
 
 
 __all__ = [
