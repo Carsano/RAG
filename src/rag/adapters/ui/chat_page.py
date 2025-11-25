@@ -196,7 +196,8 @@ class ChatPage:
                     for src in sources:
                         title = src.get("title", "")
                         snippet = src.get("snippet", "")
-                        st.markdown(f"- **{title}**: {snippet}")
+                        with st.expander(f"Source: {title}"):
+                            st.markdown(snippet)
 
             # Persist the assistant message before rendering feedback
             self._append("assistant", answer)
