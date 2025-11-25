@@ -39,7 +39,8 @@ def main():
                      completion_args=cfg.completion_args)
     embedder = MistralEmbedder(model=cfg.embed_model, delay=0.0)
     store = FaissStore(index_path=cfg.faiss_index_path,
-                       chunks_pickle_path=cfg.chunks_path)
+                       chunks_pickle_path=cfg.chunks_path,
+                       sources_path=cfg.sources_path)
     classifier = IntentClassifier(llm=llm)
     retriever = FaissRetriever(embedder=embedder, store=store)
     interaction_logger = InteractionLogger()
