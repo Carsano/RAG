@@ -31,7 +31,7 @@ def _load_index_and_docs(index_path: str, chunks_path: str, sources_path: str):
     if not os.path.exists(chunks_path):
         raise FileNotFoundError(f"Chunks introuvables: {chunks_path}")
     if not os.path.exists(sources_path):
-        raise FileNotFoundError(f"Chunks introuvables: {chunks_path}")
+        raise FileNotFoundError(f"Sources introuvables: {sources_path}")
     index = faiss.read_index(index_path)
     with open(chunks_path, "rb") as f:
         docs: List[str] = pickle.load(f)

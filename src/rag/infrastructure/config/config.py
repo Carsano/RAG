@@ -43,7 +43,7 @@ class AppConfig:
     chunks_path: str = os.getenv("CHUNKS_PATH",
                                  "data/indexes/all_chunks.pkl")
     sources_path: str = os.getenv("SOURCES_PATH",
-                                  "data/indexes/all_chunks_sources.json")
+                                  "data/indexes/all_chunk_sources.json")
 
     @staticmethod
     def load() -> "AppConfig":
