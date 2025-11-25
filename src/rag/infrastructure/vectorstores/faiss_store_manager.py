@@ -4,6 +4,7 @@ Implements the abstract vector store interface using Faiss.
 """
 from __future__ import annotations
 import os
+import json
 import pickle
 import numpy as np
 import faiss
@@ -14,7 +15,7 @@ from src.rag.application.ports.vector_store_manager import VectorStoreManager
 
 
 @st.cache_resource(show_spinner=False)
-def _load_index_and_docs(index_path: str, chunks_path: str):
+def _load_index_and_docs(index_path: str, chunks_path: str, sources_path: str):
     """Load a Faiss index and associated document chunks from disk.
 
     Args:
@@ -29,10 +30,15 @@ def _load_index_and_docs(index_path: str, chunks_path: str):
         raise FileNotFoundError(f"FAISS introuvable: {index_path}")
     if not os.path.exists(chunks_path):
         raise FileNotFoundError(f"Chunks introuvables: {chunks_path}")
+    if not os.path.exists(sources_path):
+        raise FileNotFoundError(f"Chunks introuvables: {chunks_path}")
     index = faiss.read_index(index_path)
     with open(chunks_path, "rb") as f:
         docs: List[str] = pickle.load(f)
-    return index, docs
+    with open(sources_path, "r", encoding="utf-8") as f:
+        sources = json.load(f)
+
+    return index, docs, sources
 
 
 class FaissStore(VectorStoreManager):
@@ -46,15 +52,17 @@ class FaissStore(VectorStoreManager):
         documents (List[str]): List of document chunks corresponding to index.
     """
 
-    def __init__(self, index_path: str, chunks_pickle_path: str):
+    def __init__(self, index_path: str, chunks_pickle_path: str,
+                 sources_path: str):
         """Initialize the FaissStore by loading index and document chunks.
 
         Args:
             index_path (str): Path to the Faiss index file.
             chunks_pickle_path (str): Path to the pickled document chunks file.
         """
-        self.index, self.documents = _load_index_and_docs(index_path,
-                                                          chunks_pickle_path)
+        self.index, self.documents, self.sources = _load_index_and_docs(
+            index_path, chunks_pickle_path, sources_path
+        )
 
     def search(self, query_embedding: list[float],
                k: int = 10) -> Tuple[list[int], list[float]]:
