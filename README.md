@@ -42,9 +42,17 @@ uv sync
 2. Place your Markdown knowledge files in the `data/` folder.
 
 ### Usage
-Run the indexer to embed and build the FAISS index:
+
+#### 1. Index your documents (CLI)
+Run the indexer to embed documents and build the FAISS index:
 ```bash
-uv run streamlit run src/rag/adapters/cli/app.py
+uv run python -m src.rag.adapters.cli.indexation_documentation
+```
+
+#### 2. Start the assistant (Streamlit UI)
+Launch the Streamlit web app:
+```bash
+uv run streamlit run src/rag/adapters/ui/app.py
 ```
 
 
@@ -61,13 +69,24 @@ uv run streamlit run src/rag/adapters/cli/app.py
 │       └── faiss_index.idx
 src
 ├── rag
-│   ├── adapters                               # Input/output layer. Everything that interacts with the outside world
-│   │   ├── cli                                # Command-line interface (indexing, chat, etc.)
-│   │   │   ├── app.py
+│   ├── adapters                          # Input/output layer (CLI, UI, etc.)
+│   │   ├── cli                           # Command-line tools (indexation, eval)
 │   │   │   ├── evaluation_rag_answers.py
 │   │   │   └── indexation_documentation.py
-│   │   └── ui                               # User interface (Streamlit or similar)
-│   │       └── chat_page.py
+│   │   └── ui                            # Streamlit web UI
+│   │       ├── app.py                    # Streamlit entry point
+│   │       ├── ui_pages/                 # Page controllers
+│   │       │   └── chat.py               # Chat page wiring
+│   │       ├── components/               # Reusable UI components
+│   │       │   ├── message.py
+│   │       │   ├── messages.py (à venir)
+│   │       │   ├── feedback.py
+│   │       │   └── sources.py
+│   │       ├── layout/                   # Layout utilities (sidebar, theme)
+│   │       │   ├── sidebar.py
+│   │       │   └── theme.py
+│   │       └── services/                 # UI service factories
+│   │           └── rag_chat.py
 │   ├── application                             # Core business logic for the RAG system.
 │   │   ├── ports                            # Abstract interfaces (contracts) between the app and infrastructure.
 │   │   │   ├── chunkers.py
@@ -94,18 +113,18 @@ src
 │   │   ├── converters                    # Converts input files (PDF, Markdown, etc.) into text.
 │   │   │   ├── converters.py
 │   │   │   └── default_exporter.py
-│   │   ├── embedders
-│   │   │   └── ragas_evaluator.py
-│   │   ├── evaluation
+│   │   ├── embedders                     # Embedding models
 │   │   │   ├── fake_embedder.py
 │   │   │   └── mistral_embedder.py
-│   │   ├── llm                           # LLM clients and embedding generators (Mistral, etc.)
+│   │   ├── evaluation                    # RAG evaluation tooling
+│   │   │   └── ragas_evaluator.py
+│   │   ├── llm                           # LLM clients (Mistral, LangChain)
 │   │   │   ├── langchain_mistral_client.py
 │   │   │   └── mistral_client.py
-│   │   ├── logging                       # Logging configuration and output format.
-│   │   │   ├── interaction_logger.py
-│   │   │   └── logger.py
-│   │   ├── storage                       # Storage evaluation
+│   │   ├── logging                       # Logging configuration & helpers
+│   │   │   ├── interaction_logger.py     # Q/A + contexts -> JSONL
+│   │   │   └── logger.py                 # app / usage / evaluation loggers
+│   │   ├── storage                       # Storage for evaluation runs
 │   │   │   └── evaluation_run_store.py
 │   │   └── vectorstores                  # Vector databases (FAISS, etc.)
 │   │       ├── faiss_store_manager.py
@@ -120,7 +139,6 @@ src
 ```
 
 ## Roadmap
-- [ ] Management conversion per file type
 - [ ] Streamlit web interface for local querying
 - [ ] Docker container for deployment
 - [ ] Incremental indexing
