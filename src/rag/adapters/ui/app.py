@@ -2,16 +2,25 @@
 Entry point Streamlit
 """
 import streamlit as st
+from layout.sidebar import render_sidebar
 from pages import chat
 
 PAGES = {
-    "Chat": chat
+    "Chat": chat,
 }
 
 
 def main():
+    st.set_page_config(page_title="FULL RAG", page_icon="🏛️")
+
     with st.sidebar:
-        choice = st.radio("Navigation", list(PAGES.keys()))
+        render_sidebar()
+
+        choice = st.radio(
+            "Navigation",
+            list(PAGES.keys()),
+            key="nav_choice"
+        )
 
     PAGES[choice].render()
 
