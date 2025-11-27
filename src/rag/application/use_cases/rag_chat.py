@@ -13,6 +13,10 @@ from src.rag.application.use_cases.prompting import build_system_prompt
 from src.rag.application.use_cases.prompting import clamp_dialog
 from src.rag.application.use_cases.intent_classifier import IntentClassifier
 from src.rag.infrastructure.logging.interaction_logger import InteractionLogger
+from src.rag.infrastructure.logging.logger import get_usage_logger
+
+
+usage_logger = get_usage_logger()
 
 
 class RAGChatService:
@@ -66,6 +70,31 @@ class RAGChatService:
         convo = clamp_dialog(history + [{"role": "user",
                                          "content": question}], max_messages=5)
         reply = self.llm.chat([system] + convo)
+
+        # Log high-level usage info (intent, path, previews)
+        try:
+            answer_preview = (
+                reply if len(reply) <= 400 else reply[:400] + "…"
+            )
+            question_preview = (
+                question if len(question) <= 200 else question[:200] + "…"
+            )
+            used_retrieval = bool(retrievings)
+            nb_chunks = len(chunks)
+            usage_logger.info(
+                "Chat interaction | intent=%s | used_retrieval=%s | "
+                "nb_chunks=%d | question=\"%s\" | answer=\"%s\""
+                % (
+                    intent,
+                    used_retrieval,
+                    nb_chunks,
+                    question_preview,
+                    answer_preview,
+                )
+            )
+        except Exception:
+            # Never break the chat flow because of logging
+            pass
 
         # Prepare contexts as plain strings for logging
         contexts_for_log = chunks
