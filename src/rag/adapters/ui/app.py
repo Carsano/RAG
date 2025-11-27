@@ -3,7 +3,7 @@ Entry point Streamlit
 """
 import streamlit as st
 from layout.sidebar import render_sidebar
-from pages import chat
+from ui_pages import chat
 
 PAGES = {
     "Chat": chat,
