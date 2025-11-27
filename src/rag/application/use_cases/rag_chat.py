@@ -79,14 +79,18 @@ class RAGChatService:
             question_preview = (
                 question if len(question) <= 200 else question[:200] + "…"
             )
+            used_retrieval = bool(retrievings)
+            nb_chunks = len(chunks)
             usage_logger.info(
                 "Chat interaction | intent=%s | used_retrieval=%s | "
-                "nb_chunks=%d | question=\"%s\" | answer=\"%s\"",
-                intent,
-                bool(retrievings),
-                len(chunks),
-                question_preview,
-                answer_preview,
+                "nb_chunks=%d | question=\"%s\" | answer=\"%s\""
+                % (
+                    intent,
+                    used_retrieval,
+                    nb_chunks,
+                    question_preview,
+                    answer_preview,
+                )
             )
         except Exception:
             # Never break the chat flow because of logging
