@@ -79,7 +79,6 @@ src
 │   │       │   └── chat.py               # Chat page wiring
 │   │       ├── components/               # Reusable UI components
 │   │       │   ├── message.py
-│   │       │   ├── messages.py (à venir)
 │   │       │   ├── feedback.py
 │   │       │   └── sources.py
 │   │       ├── layout/                   # Layout utilities (sidebar, theme)

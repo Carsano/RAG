@@ -4,11 +4,12 @@ Wires the sidebar, page routing and logging, and renders the main chat UI.
 """
 import streamlit as st
 from layout.sidebar import render_sidebar
-from ui_pages import chat
+from ui_pages import chat, settings
 from src.rag.infrastructure.logging.logger import get_usage_logger
 
 PAGES = {
     "Chat": chat,
+    "Paramètres": settings,
 }
 
 
