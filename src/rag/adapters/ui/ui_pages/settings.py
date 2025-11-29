@@ -12,6 +12,7 @@ import streamlit as st
 
 DEFAULT_SETTINGS: Dict[str, Any] = {
     "temperature": 0.05,
+    "top_k": 10,
     "max_answer_tokens": 512,
     "show_sources": True,
     "log_interactions": True,
@@ -34,12 +35,22 @@ def render() -> None:
         st.subheader("Génération")
         temperature = st.slider(
             "Température",
-            min_value=0.0,
+            min_value=0.05,
             max_value=1.0,
             value=float(st.session_state.settings.get("temperature", 0.05)),
             step=0.05,
             help="Plus la température est élevée,"
             "plus les réponses sont créatives.",
+        )
+
+        top_k = st.slider(
+            "Top K",
+            min_value=0,
+            max_value=10,
+            value=int(st.session_state.settings.get("top_k", 5)),
+            step=1,
+            help="Plus le top k est élevé,"
+            "plus le nombre de sources utilisées est élevé.",
         )
 
         max_answer_tokens = st.number_input(
@@ -77,6 +88,7 @@ def render() -> None:
             st.session_state.settings.update(
                 {
                     "temperature": float(temperature),
+                    "top_k": int(top_k),
                     "max_answer_tokens": int(max_answer_tokens),
                     "show_sources": bool(show_sources),
                     "log_interactions": bool(log_interactions),

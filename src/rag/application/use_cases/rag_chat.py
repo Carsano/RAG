@@ -50,7 +50,7 @@ class RAGChatService:
         self.interaction_logger = interaction_logger
 
     def answer(self, history: List[dict], question: str,
-               max_sources: int = 5) -> dict:
+               max_sources: int = 5, top_k: int = 5) -> dict:
         """Generate an answer using history and optional retrieval.
 
         The method classifies intent. If the intent is "rag", it retrieves
@@ -67,7 +67,7 @@ class RAGChatService:
         """
         intent = self.intent_classifier.classify(question)
         retrievings = (
-            self.retriever.retrieve(question, k=max_sources)
+            self.retriever.retrieve(question, k=top_k)
             if intent == "rag"
             else []
         )
