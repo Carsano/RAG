@@ -9,6 +9,8 @@ from typing import Any, Dict
 
 import streamlit as st
 
+from src.rag.infrastructure.config.config import SYSTEM_PROMPT
+
 
 DEFAULT_SETTINGS: Dict[str, Any] = {
     "temperature": 0.05,
@@ -18,6 +20,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "log_interactions": True,
     "max_sources": 3,
     "reranker_type": "llm_reranker",
+    "system_prompt": SYSTEM_PROMPT,
 }
 
 
@@ -134,6 +137,17 @@ def render() -> None:
             help="Limite la longueur des réponses générées.",
         )
 
+        system_prompt = st.text_area(
+            "Prompt système du LLM",
+            value=str(st.session_state.settings.get("system_prompt",
+                                                    SYSTEM_PROMPT)),
+            height=200,
+            help=(
+                "Message système utilisé pour guider le comportement de "
+                "l'assistant. Laissez vide pour utiliser le prompt par défaut."
+            ),
+        )
+
     with tab3:
         st.subheader("Affichage et journalisation")
 
@@ -163,6 +177,7 @@ def render() -> None:
                     "temperature": float(temperature),
                     "top_k": top_k_value,
                     "max_answer_tokens": int(max_answer_tokens),
+                    "system_prompt": system_prompt or SYSTEM_PROMPT,
                     "show_sources": bool(show_sources),
                     "log_interactions": bool(log_interactions),
                     "max_sources": max_sources_value,

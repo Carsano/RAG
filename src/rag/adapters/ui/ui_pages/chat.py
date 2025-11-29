@@ -59,10 +59,15 @@ def _handle_user_message(prompt: str):
         max_sources = int(settings.get("max_sources", 5))
         reranker_type = str(settings.get("reranker_type",
                                          "llm_reranker"))
+        system_prompt_override = settings.get("system_prompt")
 
         if hasattr(service, "llm") and hasattr(service.llm, "args"):
             service.llm.args["temperature"] = temperature
             service.llm.args["max_tokens"] = max_tokens
+
+        # Override base system prompt from settings if provided
+        if system_prompt_override:
+            service.base_system = system_prompt_override
 
         configure_reranker(reranker_type)
 
