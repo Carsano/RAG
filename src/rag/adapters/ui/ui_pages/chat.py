@@ -52,6 +52,14 @@ def _handle_user_message(prompt: str):
         placeholder = st.empty()
         placeholder.markdown("_En cours..._")
 
+        settings = st.session_state.get("settings", {})
+        temperature = float(settings.get("temperature", 0.3))
+        max_tokens = int(settings.get("max_answer_tokens", 512))
+
+        if hasattr(service, "llm") and hasattr(service.llm, "args"):
+            service.llm.args["temperature"] = temperature
+            service.llm.args["max_tokens"] = max_tokens
+
         reply = service.answer(
             history=st.session_state.messages,
             question=prompt,
