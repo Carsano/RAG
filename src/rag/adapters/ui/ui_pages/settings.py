@@ -12,7 +12,7 @@ import streamlit as st
 
 DEFAULT_SETTINGS: Dict[str, Any] = {
     "temperature": 0.05,
-    "top_k": 10,
+    "top_k": 5,
     "max_answer_tokens": 512,
     "show_sources": True,
     "log_interactions": True,
@@ -27,26 +27,26 @@ def _init_settings_state() -> None:
     # Initialize UI slider state from settings if not already set
     if "top_k_slider" not in st.session_state:
         st.session_state.top_k_slider = int(
-            st.session_state.settings.get("top_k", 10)
+            st.session_state.settings.get("top_k")
         )
     if "max_sources_slider" not in st.session_state:
         st.session_state.max_sources_slider = int(
-            st.session_state.settings.get("max_sources", 3)
+            st.session_state.settings.get("max_sources")
         )
 
 
 def _sync_from_max_sources() -> None:
     """Ensure top_k is always >= max_sources when max_sources changes."""
-    max_sources = int(st.session_state.get("max_sources_slider", 1))
-    top_k = int(st.session_state.get("top_k_slider", 0))
+    max_sources = int(st.session_state.get("max_sources_slider"))
+    top_k = int(st.session_state.get("top_k_slider"))
     if max_sources > top_k:
         st.session_state.top_k_slider = max_sources
 
 
 def _sync_from_top_k() -> None:
     """Ensure max_sources is always <= top_k when top_k changes."""
-    max_sources = int(st.session_state.get("max_sources_slider", 1))
-    top_k = int(st.session_state.get("top_k_slider", 0))
+    max_sources = int(st.session_state.get("max_sources_slider"))
+    top_k = int(st.session_state.get("top_k_slider"))
     if top_k < max_sources:
         st.session_state.max_sources_slider = top_k
 
@@ -57,50 +57,29 @@ def render() -> None:
     st.title("Paramètres")
     st.caption("Configurez le comportement de l'assistant RAG.")
 
-    st.subheader("Récupération")
+    # Bloc 1 : récupération
+    with st.container(border=True):
+        st.subheader("Récupération")
 
-    top_k = st.slider(
-        "Top K",
-        min_value=1,
-        max_value=10,
-        value=int(st.session_state.settings.get("top_k", 5)),
-        step=1,
-        help="Plus le top k est élevé,"
-        "plus le nombre de sources utilisées est élevé.",
-        key="top_k_slider",
-        on_change=_sync_from_top_k,
-    )
-
-    max_sources = st.slider(
-        "Nombre maximal de sources affichées",
-        min_value=1,
-        max_value=10,
-        value=int(st.session_state.settings.get("max_sources", 3)),
-        step=1,
-        help="Limite le nombre de documents affichés comme sources.",
-        key="max_sources_slider",
-        on_change=_sync_from_max_sources,
-    )
-
-    with st.form("settings_form"):
-        st.subheader("Génération")
-
-        temperature = st.slider(
-            "Température",
-            min_value=0.05,
-            max_value=1.0,
-            value=float(st.session_state.settings.get("temperature", 0.05)),
-            step=0.05,
-            help="Plus la température est élevée,"
-            "plus les réponses sont créatives.",
+        top_k = st.slider(
+            "Top K",
+            min_value=1,
+            max_value=10,
+            step=1,
+            help="Plus le top k est élevé,"
+            "plus le nombre de sources utilisées est élevé.",
+            key="top_k_slider",
+            on_change=_sync_from_top_k,
         )
-        max_answer_tokens = st.number_input(
-            "Taille maximale des réponses (tokens)",
-            min_value=64,
-            max_value=4096,
-            value=int(st.session_state.settings.get("max_answer_tokens", 512)),
-            step=64,
-            help="Limite la longueur des réponses générées.",
+
+        max_sources = st.slider(
+            "Nombre maximal de sources affichées",
+            min_value=1,
+            max_value=10,
+            step=1,
+            help="Limite le nombre de documents affichés comme sources.",
+            key="max_sources_slider",
+            on_change=_sync_from_max_sources,
         )
         available_rerankers = [
             "llm_reranker",
@@ -131,6 +110,29 @@ def render() -> None:
                 "documents récupérés."
             ),
         )
+
+    with st.container(border=True):
+        st.subheader("Génération")
+
+        temperature = st.slider(
+            "Température",
+            min_value=0.05,
+            max_value=1.0,
+            value=float(st.session_state.settings.get("temperature")),
+            step=0.05,
+            help="Plus la température est élevée, "
+            "plus les réponses sont créatives.",
+        )
+        max_answer_tokens = st.number_input(
+            "Taille maximale des réponses (tokens)",
+            min_value=64,
+            max_value=4096,
+            value=int(st.session_state.settings.get("max_answer_tokens")),
+            step=64,
+            help="Limite la longueur des réponses générées.",
+        )
+
+    with st.container(border=True):
         st.subheader("Affichage et journalisation")
 
         show_sources = st.checkbox(
@@ -142,6 +144,8 @@ def render() -> None:
             value=bool(st.session_state.settings.get("log_interactions",
                                                      True)),
         )
+
+    with st.form("settings_form"):
 
         submitted = st.form_submit_button("Enregistrer les paramètres")
 
