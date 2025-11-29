@@ -17,6 +17,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "show_sources": True,
     "log_interactions": True,
     "max_sources": 3,
+    "reranker_type": "llm_reranker",
 }
 
 
@@ -72,6 +73,39 @@ def render() -> None:
         )
 
         st.subheader("Affichage et journalisation")
+
+        available_rerankers = [
+            "keyword_overlap_scorer",
+            "cross_encoder",
+            "llm_reranker",
+        ]
+        current_reranker = st.session_state.settings.get(
+            "reranker_type", "llm_reranker"
+        )
+        try:
+            default_index = available_rerankers.index(current_reranker)
+        except ValueError:
+            default_index = 1  # fallback to cross_encoder
+
+        def _format_reranker_label(key: str) -> str:
+            if key == "keyword_overlap_scorer":
+                return "Keyword overlap (rapide, baseline)"
+            if key == "cross_encoder":
+                return "Cross-encoder (plus précis, plus lent)"
+            if key == "llm_reranker":
+                return "LLM reranker (très précis, coûteux)"
+            return key
+
+        reranker_type = st.selectbox(
+            "Reranker",
+            options=available_rerankers,
+            format_func=_format_reranker_label,
+            index=default_index,
+            help=(
+                "Choisissez le reranker utilisé pour ordonner les "
+                "documents récupérés."
+            ),
+        )
         show_sources = st.checkbox(
             "Afficher les sources par défaut",
             value=bool(st.session_state.settings.get("show_sources", True)),
@@ -93,6 +127,7 @@ def render() -> None:
                     "show_sources": bool(show_sources),
                     "log_interactions": bool(log_interactions),
                     "max_sources": int(max_sources),
+                    "reranker_type": str(reranker_type),
                 }
             )
             st.success("Paramètres mis à jour pour cette session.")
