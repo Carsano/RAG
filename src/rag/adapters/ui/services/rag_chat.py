@@ -16,6 +16,15 @@ from src.rag.infrastructure.vectorstores.faiss_store_manager import FaissStore
 from src.rag.infrastructure.vectorstores.faiss_store_retriever import (
     FaissRetriever,
 )
+from src.rag.infrastructure.rerankers.cross_encoder_reranker import (
+    CrossEncoderReranker,
+)
+from src.rag.infrastructure.rerankers.llm_reranker import (
+    LLMReranker
+)
+from src.rag.infrastructure.rerankers.keywords_overlap_scorer import (
+    KeywordsOverlapScorer
+)
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.interaction_logger import (
     InteractionLogger,
@@ -23,6 +32,7 @@ from src.rag.infrastructure.logging.interaction_logger import (
 
 
 _service: Optional[RAGChatService] = None
+_rerankers = {}
 
 
 def _build_chat_service() -> RAGChatService:
@@ -57,18 +67,45 @@ def _build_chat_service() -> RAGChatService:
         store=store,
     )
 
+    reranker = LLMReranker(llm=llm)
+
     classifier = IntentClassifier(llm=llm)
     interaction_logger = InteractionLogger()
 
     service = RAGChatService(
         llm=llm,
         retriever=retriever,
+        reranker=reranker,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
         interaction_logger=interaction_logger,
     )
 
     return service
+
+
+def _get_or_create_reranker(name: str):
+    if name in _rerankers:
+        return _rerankers[name]
+
+    if name == "keyword_overlap_scorer":
+        _rerankers[name] = KeywordsOverlapScorer()
+    elif name == "cross_encoder":
+        _rerankers[name] = CrossEncoderReranker()
+    elif name == "llm_reranker":
+        service = get_chat_service()
+        llm = service.llm
+        _rerankers[name] = LLMReranker(llm=llm)
+    else:
+        raise ValueError(f"Unknown reranker name: {name}")
+
+    return _rerankers[name]
+
+
+def configure_reranker(name: str) -> None:
+    """Configure the reranker used by the shared chat service."""
+    service = get_chat_service()
+    service.reranker = _get_or_create_reranker(name)
 
 
 def get_chat_service() -> RAGChatService:

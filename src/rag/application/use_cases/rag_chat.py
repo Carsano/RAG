@@ -10,6 +10,7 @@ from typing import List, Optional
 
 from src.rag.application.ports.llm import LLM
 from src.rag.application.ports.retriever import Retriever
+from src.rag.application.ports.reranker import Reranker
 from src.rag.application.use_cases.prompting import build_system_prompt
 from src.rag.application.use_cases.prompting import clamp_dialog
 from src.rag.application.use_cases.intent_classifier import IntentClassifier
@@ -28,7 +29,7 @@ class RAGChatService:
     produces answers with a language model.
     """
 
-    def __init__(self, llm: LLM, retriever: Retriever,
+    def __init__(self, llm: LLM, retriever: Retriever, reranker: Reranker,
                  base_system_prompt: str, intent_classifier: IntentClassifier,
                  interaction_logger: Optional[InteractionLogger] = None):
         """Initialize the service.
@@ -43,16 +44,18 @@ class RAGChatService:
         """
         self.llm = llm
         self.retriever = retriever
+        self.reranker = reranker
         self.base_system = base_system_prompt
         self.intent_classifier = intent_classifier
         self.interaction_logger = interaction_logger
 
     def answer(self, history: List[dict], question: str,
-               max_sources: int = 5) -> dict:
+               max_sources: int = 5, top_k: int = 5) -> dict:
         """Generate an answer using history and optional retrieval.
 
         The method classifies intent. If the intent is "rag", it retrieves
-        chunks. It then builds the system prompt, clamps dialog history, and
+        chunks and passes through a reranker.
+        It then builds the system prompt, clamps dialog history, and
         asks the LLM for a reply.
 
         Args:
@@ -64,12 +67,20 @@ class RAGChatService:
         """
         intent = self.intent_classifier.classify(question)
         retrievings = (
-            self.retriever.retrieve(question, k=max_sources)
+            self.retriever.retrieve(question, k=top_k)
             if intent == "rag"
             else []
         )
-        chunks = [item["content"] for item in retrievings]
-        sources = [item["source"] for item in retrievings]
+
+        if retrievings:
+            ranked = self.reranker.rank(question, retrievings)
+            top_ranked = ranked[:max_sources]
+            chunks = [rc.chunk["content"] for rc in top_ranked]
+            sources = [rc.chunk["source"] for rc in top_ranked]
+        else:
+            chunks = []
+            sources = []
+
         system = {"role": "system",
                   "content": build_system_prompt(self.base_system, chunks)}
         convo = clamp_dialog(history + [{"role": "user",

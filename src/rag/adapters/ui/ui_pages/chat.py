@@ -5,7 +5,7 @@ page lifecycle, and exposes the main chat entry point.
 """
 import streamlit as st
 
-from services.rag_chat import get_chat_service
+from services.rag_chat import get_chat_service, configure_reranker
 
 from components.message import render_message
 from components.feedback import render_feedback
@@ -54,17 +54,28 @@ def _handle_user_message(prompt: str):
 
         settings = st.session_state.get("settings", {})
         temperature = float(settings.get("temperature", 0.3))
+        top_k = int(settings.get("top_k", 5))
         max_tokens = int(settings.get("max_answer_tokens", 512))
         max_sources = int(settings.get("max_sources", 5))
+        reranker_type = str(settings.get("reranker_type",
+                                         "llm_reranker"))
+        system_prompt_override = settings.get("system_prompt")
 
         if hasattr(service, "llm") and hasattr(service.llm, "args"):
             service.llm.args["temperature"] = temperature
             service.llm.args["max_tokens"] = max_tokens
 
+        # Override base system prompt from settings if provided
+        if system_prompt_override:
+            service.base_system = system_prompt_override
+
+        configure_reranker(reranker_type)
+
         reply = service.answer(
             history=st.session_state.messages,
             question=prompt,
             max_sources=max_sources,
+            top_k=top_k
         )
 
         answer = reply["answer"]
