@@ -24,6 +24,31 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
 def _init_settings_state() -> None:
     if "settings" not in st.session_state:
         st.session_state.settings = DEFAULT_SETTINGS.copy()
+    # Initialize UI slider state from settings if not already set
+    if "top_k_slider" not in st.session_state:
+        st.session_state.top_k_slider = int(
+            st.session_state.settings.get("top_k", 10)
+        )
+    if "max_sources_slider" not in st.session_state:
+        st.session_state.max_sources_slider = int(
+            st.session_state.settings.get("max_sources", 3)
+        )
+
+
+def _sync_from_max_sources() -> None:
+    """Ensure top_k is always >= max_sources when max_sources changes."""
+    max_sources = int(st.session_state.get("max_sources_slider", 1))
+    top_k = int(st.session_state.get("top_k_slider", 0))
+    if max_sources > top_k:
+        st.session_state.top_k_slider = max_sources
+
+
+def _sync_from_top_k() -> None:
+    """Ensure max_sources is always <= top_k when top_k changes."""
+    max_sources = int(st.session_state.get("max_sources_slider", 1))
+    top_k = int(st.session_state.get("top_k_slider", 0))
+    if top_k < max_sources:
+        st.session_state.max_sources_slider = top_k
 
 
 def render() -> None:
@@ -32,8 +57,34 @@ def render() -> None:
     st.title("Paramètres")
     st.caption("Configurez le comportement de l'assistant RAG.")
 
+    st.subheader("Récupération")
+
+    top_k = st.slider(
+        "Top K",
+        min_value=1,
+        max_value=10,
+        value=int(st.session_state.settings.get("top_k", 5)),
+        step=1,
+        help="Plus le top k est élevé,"
+        "plus le nombre de sources utilisées est élevé.",
+        key="top_k_slider",
+        on_change=_sync_from_top_k,
+    )
+
+    max_sources = st.slider(
+        "Nombre maximal de sources affichées",
+        min_value=1,
+        max_value=10,
+        value=int(st.session_state.settings.get("max_sources", 3)),
+        step=1,
+        help="Limite le nombre de documents affichés comme sources.",
+        key="max_sources_slider",
+        on_change=_sync_from_max_sources,
+    )
+
     with st.form("settings_form"):
         st.subheader("Génération")
+
         temperature = st.slider(
             "Température",
             min_value=0.05,
@@ -43,26 +94,6 @@ def render() -> None:
             help="Plus la température est élevée,"
             "plus les réponses sont créatives.",
         )
-
-        top_k = st.slider(
-            "Top K",
-            min_value=0,
-            max_value=10,
-            value=int(st.session_state.settings.get("top_k", 5)),
-            step=1,
-            help="Plus le top k est élevé,"
-            "plus le nombre de sources utilisées est élevé.",
-        )
-
-        max_sources = st.slider(
-            "Nombre maximal de sources affichées",
-            min_value=1,
-            max_value=10,
-            value=int(st.session_state.settings.get("max_sources", 3)),
-            step=1,
-            help="Limite le nombre de documents affichés comme sources.",
-        )
-
         max_answer_tokens = st.number_input(
             "Taille maximale des réponses (tokens)",
             min_value=64,
@@ -115,14 +146,20 @@ def render() -> None:
         submitted = st.form_submit_button("Enregistrer les paramètres")
 
         if submitted:
+            top_k_value = int(
+                st.session_state.get("top_k_slider", top_k)
+            )
+            max_sources_value = int(
+                st.session_state.get("max_sources_slider", max_sources)
+            )
             st.session_state.settings.update(
                 {
                     "temperature": float(temperature),
-                    "top_k": int(top_k),
+                    "top_k": top_k_value,
                     "max_answer_tokens": int(max_answer_tokens),
                     "show_sources": bool(show_sources),
                     "log_interactions": bool(log_interactions),
-                    "max_sources": int(max_sources),
+                    "max_sources": max_sources_value,
                     "reranker_type": str(reranker_type),
                 }
             )
