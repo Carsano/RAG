@@ -15,6 +15,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "max_answer_tokens": 512,
     "show_sources": True,
     "log_interactions": True,
+    "max_sources": 3,
 }
 
 
@@ -61,6 +62,15 @@ def render() -> None:
                                                      True)),
         )
 
+        max_sources = st.slider(
+            "Nombre maximal de sources affichées",
+            min_value=1,
+            max_value=10,
+            value=int(st.session_state.settings.get("max_sources", 3)),
+            step=1,
+            help="Limite le nombre de documents affichés comme sources.",
+        )
+
         submitted = st.form_submit_button("Enregistrer les paramètres")
 
         if submitted:
@@ -70,6 +80,7 @@ def render() -> None:
                     "max_answer_tokens": int(max_answer_tokens),
                     "show_sources": bool(show_sources),
                     "log_interactions": bool(log_interactions),
+                    "max_sources": int(max_sources),
                 }
             )
             st.success("Paramètres mis à jour pour cette session.")
