@@ -5,6 +5,7 @@ Provides utilities to manage chat interactions that use
 Retrieval-Augmented Generation (RAG).
 """
 from __future__ import annotations
+import os
 from typing import List, Optional
 
 from src.rag.application.ports.llm import LLM
@@ -113,7 +114,7 @@ class RAGChatService:
         for content, src in zip(chunks, sources):
             final_sources.append(
                 {
-                    "title": src,
+                    "title": os.path.basename(src),
                     "snippet": content,
                 }
             )

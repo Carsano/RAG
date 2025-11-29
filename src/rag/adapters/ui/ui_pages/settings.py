@@ -11,7 +11,7 @@ import streamlit as st
 
 
 DEFAULT_SETTINGS: Dict[str, Any] = {
-    "temperature": 0.3,
+    "temperature": 0.05,
     "max_answer_tokens": 512,
     "show_sources": True,
     "log_interactions": True,
