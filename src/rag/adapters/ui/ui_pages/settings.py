@@ -35,7 +35,7 @@ def render() -> None:
             "Température",
             min_value=0.0,
             max_value=1.0,
-            value=float(st.session_state.settings.get("temperature", 0.3)),
+            value=float(st.session_state.settings.get("temperature", 0.05)),
             step=0.05,
             help="Plus la température est élevée,"
             "plus les réponses sont créatives.",

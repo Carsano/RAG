@@ -73,5 +73,6 @@ def _handle_user_message(prompt: str):
             "content": answer
         })
 
-        if reply.get("sources"):
+        show_sources = bool(settings.get("show_sources", True))
+        if show_sources and reply.get("sources"):
             render_sources(reply["sources"])
