@@ -54,7 +54,8 @@ class RAGChatService:
         """Generate an answer using history and optional retrieval.
 
         The method classifies intent. If the intent is "rag", it retrieves
-        chunks. It then builds the system prompt, clamps dialog history, and
+        chunks and passes through a reranker.
+        It then builds the system prompt, clamps dialog history, and
         asks the LLM for a reply.
 
         Args:

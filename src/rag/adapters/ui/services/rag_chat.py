@@ -16,6 +16,9 @@ from src.rag.infrastructure.vectorstores.faiss_store_manager import FaissStore
 from src.rag.infrastructure.vectorstores.faiss_store_retriever import (
     FaissRetriever,
 )
+from src.rag.infrastructure.rerankers.keywords_overlap_scorer import (
+    KeywordsOverlapScorer
+)
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.interaction_logger import (
     InteractionLogger,
@@ -57,12 +60,15 @@ def _build_chat_service() -> RAGChatService:
         store=store,
     )
 
+    reranker = KeywordsOverlapScorer()
+
     classifier = IntentClassifier(llm=llm)
     interaction_logger = InteractionLogger()
 
     service = RAGChatService(
         llm=llm,
         retriever=retriever,
+        reranker=reranker,
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
         interaction_logger=interaction_logger,
