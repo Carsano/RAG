@@ -57,8 +57,10 @@ def render() -> None:
     st.title("Paramètres")
     st.caption("Configurez le comportement de l'assistant RAG.")
 
-    # Bloc 1 : récupération
-    with st.container(border=True):
+    tab1, tab2, tab3 = st.tabs(["Récupération",
+                                "Génération",
+                                "Affichage et journalisation"])
+    with tab1:
         st.subheader("Récupération")
 
         top_k = st.slider(
@@ -111,7 +113,7 @@ def render() -> None:
             ),
         )
 
-    with st.container(border=True):
+    with tab2:
         st.subheader("Génération")
 
         temperature = st.slider(
@@ -132,7 +134,7 @@ def render() -> None:
             help="Limite la longueur des réponses générées.",
         )
 
-    with st.container(border=True):
+    with tab3:
         st.subheader("Affichage et journalisation")
 
         show_sources = st.checkbox(
