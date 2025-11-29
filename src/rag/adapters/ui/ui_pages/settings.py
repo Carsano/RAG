@@ -71,21 +71,15 @@ def render() -> None:
             step=64,
             help="Limite la longueur des réponses générées.",
         )
-
-        st.subheader("Affichage et journalisation")
-
         available_rerankers = [
+            "llm_reranker",
             "keyword_overlap_scorer",
             "cross_encoder",
-            "llm_reranker",
         ]
         current_reranker = st.session_state.settings.get(
             "reranker_type", "llm_reranker"
         )
-        try:
-            default_index = available_rerankers.index(current_reranker)
-        except ValueError:
-            default_index = 1  # fallback to cross_encoder
+        default_index = available_rerankers.index(current_reranker)
 
         def _format_reranker_label(key: str) -> str:
             if key == "keyword_overlap_scorer":
@@ -106,6 +100,8 @@ def render() -> None:
                 "documents récupérés."
             ),
         )
+        st.subheader("Affichage et journalisation")
+
         show_sources = st.checkbox(
             "Afficher les sources par défaut",
             value=bool(st.session_state.settings.get("show_sources", True)),
