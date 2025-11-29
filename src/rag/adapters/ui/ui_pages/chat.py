@@ -55,6 +55,7 @@ def _handle_user_message(prompt: str):
         settings = st.session_state.get("settings", {})
         temperature = float(settings.get("temperature", 0.3))
         max_tokens = int(settings.get("max_answer_tokens", 512))
+        max_sources = int(settings.get("max_sources", 5))
 
         if hasattr(service, "llm") and hasattr(service.llm, "args"):
             service.llm.args["temperature"] = temperature
@@ -63,6 +64,7 @@ def _handle_user_message(prompt: str):
         reply = service.answer(
             history=st.session_state.messages,
             question=prompt,
+            max_sources=max_sources,
         )
 
         answer = reply["answer"]

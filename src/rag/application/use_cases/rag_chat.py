@@ -47,7 +47,8 @@ class RAGChatService:
         self.intent_classifier = intent_classifier
         self.interaction_logger = interaction_logger
 
-    def answer(self, history: List[dict], question: str) -> dict:
+    def answer(self, history: List[dict], question: str,
+               max_sources: int = 5) -> dict:
         """Generate an answer using history and optional retrieval.
 
         The method classifies intent. If the intent is "rag", it retrieves
@@ -62,8 +63,11 @@ class RAGChatService:
           dict: The model's answer and sources.
         """
         intent = self.intent_classifier.classify(question)
-        retrievings = self.retriever.retrieve(question,
-                                              k=5) if intent == "rag" else []
+        retrievings = (
+            self.retriever.retrieve(question, k=max_sources)
+            if intent == "rag"
+            else []
+        )
         chunks = [item["content"] for item in retrievings]
         sources = [item["source"] for item in retrievings]
         system = {"role": "system",
