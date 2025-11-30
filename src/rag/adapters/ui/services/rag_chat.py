@@ -29,6 +29,7 @@ from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.interaction_logger import (
     InteractionLogger,
 )
+from src.rag.infrastructure.logging.rag_audit_logger import RAGAuditLogger
 
 
 _service: Optional[RAGChatService] = None
@@ -71,6 +72,7 @@ def _build_chat_service() -> RAGChatService:
 
     classifier = IntentClassifier(llm=llm)
     interaction_logger = InteractionLogger()
+    audit_logger = RAGAuditLogger()
 
     service = RAGChatService(
         llm=llm,
@@ -79,6 +81,14 @@ def _build_chat_service() -> RAGChatService:
         base_system_prompt=cfg.system_prompt,
         intent_classifier=classifier,
         interaction_logger=interaction_logger,
+        audit_logger=audit_logger,
+        component_versions={
+            "llm_version": cfg.chat_model,
+            "embedder_version": cfg.embed_model,
+            "retriever_version": retriever.__class__.__name__,
+            "reranker_version": reranker.__class__.__name__,
+            "chunker_version": None,
+        },
     )
 
     return service
