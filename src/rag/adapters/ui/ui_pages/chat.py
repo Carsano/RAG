@@ -4,6 +4,7 @@ Instantiates the chat service and UI components, binds them to Streamlit's
 page lifecycle, and exposes the main chat entry point.
 """
 import streamlit as st
+from uuid import uuid4
 
 from services.rag_chat import get_chat_service, configure_reranker
 
@@ -24,6 +25,8 @@ def ensure_chat_state():
         st.session_state.messages = [
             {"role": "assistant", "content": WELCOME}
         ]
+    if "user_id" not in st.session_state:
+        st.session_state.user_id = f"user-{uuid4()}"
 
 
 def render():
@@ -60,6 +63,7 @@ def _handle_user_message(prompt: str):
         reranker_type = str(settings.get("reranker_type",
                                          "llm_reranker"))
         system_prompt_override = settings.get("system_prompt")
+        user_id = st.session_state.get("user_id")
 
         if hasattr(service, "llm") and hasattr(service.llm, "args"):
             service.llm.args["temperature"] = temperature
@@ -70,12 +74,25 @@ def _handle_user_message(prompt: str):
             service.base_system = system_prompt_override
 
         configure_reranker(reranker_type)
+        llm_model = getattr(service.llm, "model", None)
+        input_params = {
+            "top_k": top_k,
+            "max_sources": max_sources,
+            "temperature": temperature,
+            "top_p": getattr(service.llm, "args", {}).get("top_p"),
+            "max_answer_tokens": max_tokens,
+            "model": llm_model,
+            "reranker_type": reranker_type,
+            "system_prompt_override": bool(system_prompt_override),
+        }
 
         reply = service.answer(
             history=st.session_state.messages,
             question=prompt,
             max_sources=max_sources,
-            top_k=top_k
+            top_k=top_k,
+            user_id=user_id,
+            input_parameters=input_params,
         )
 
         answer = reply["answer"]

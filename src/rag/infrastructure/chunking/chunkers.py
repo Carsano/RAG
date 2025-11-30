@@ -19,6 +19,7 @@ class MarkdownTagChunker(Chunker):
     This chunker splits Markdown text into smaller chunks while preserving
     structural elements like headers, lists, and tables.
     """
+    VERSION = "2025-11-30_markdown_tag_v1"
 
     def __init__(self, chunk_size: int = 800, chunk_overlap: int = 150
                  ) -> None:
@@ -50,6 +51,7 @@ class RecursiveChunker(Chunker):
 
     Suitable for heterogeneous or poorly formatted documents.
     """
+    VERSION = "2025-11-30_mrecursive_v1"
 
     def __init__(self, chunk_size: int = 800, chunk_overlap: int = 150
                  ) -> None:
@@ -101,6 +103,7 @@ class SemanticChunker(Chunker):
 
     The provided `boundary_model` must implement the `BoundaryModel` protocol.
     """
+    VERSION = "2025-11-30_semantic_v1"
 
     def __init__(
         self,
