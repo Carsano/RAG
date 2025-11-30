@@ -75,19 +75,18 @@ class RAGChatService:
         user_id: Optional[str] = None,
         input_parameters: Optional[Dict[str, Any]] = None,
     ) -> dict:
-        """Generate an answer using history and optional retrieval.
-
-        The method classifies intent. If the intent is "rag", it retrieves
-        chunks and passes through a reranker.
-        It then builds the system prompt, clamps dialog history, and
-        asks the LLM for a reply.
+        """Generate an answer using dialog history and retrieval.
 
         Args:
-          history (List[dict]): Prior messages in the conversation.
-          question (str): Current user question.
+            history: Prior conversation messages.
+            question: Current user question.
+            max_sources: Maximum number of sources exposed to the UI.
+            top_k: Number of candidates to request from the retriever.
+            user_id: Optional identifier of the active user.
+            input_parameters: User-requested parameters such as temperature.
 
         Returns:
-          dict: The model's answer and sources.
+            dict: Final answer, sources, and optional audit payload.
         """
         user_identifier = user_id or "anonymous"
         requested_params = input_parameters or {}
@@ -219,7 +218,23 @@ class RAGChatService:
         requested_params: Dict[str, Any],
         latencies: Dict[str, float | None],
     ) -> Optional[dict]:
-        """Assemble the JSON payload expected by the audit storage."""
+        """Assemble the JSON payload expected by the audit storage.
+
+        Args:
+            user_identifier: Identifier of the user for this interaction.
+            question: Raw question asked by the user.
+            reply: Final answer returned by the LLM.
+            retrievings: Retriever outputs with metadata.
+            intent: Intent label returned by the classifier.
+            ranked: Ranked chunks emitted by the reranker.
+            selected_ranked: Subset of ranked chunks shown to the user.
+            prompt_messages: Prompt history sent to the LLM.
+            requested_params: User-requested configuration values.
+            latencies: Step timings in milliseconds.
+
+        Returns:
+            dict | None: Structured audit payload or None if logging disabled.
+        """
         if not getattr(self, "audit_logger", None):
             return None
 
