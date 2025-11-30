@@ -220,6 +220,8 @@ class DocumentsIndexer:
             "all_chunk_sources.json")
         with open(sources_json, "w", encoding="utf-8") as f:
             json.dump(self.valid_sources, f, ensure_ascii=False, indent=2)
+        version_file = self.index_path.parent / "chunker_version.txt"
+        version_file.write_text(self.chunker.version)
         self.logger.info(
             f"Index written: {self.index_path} | "
             f"Chunks: {self.chunks_json_path} / {self.chunks_pkl_path}"
