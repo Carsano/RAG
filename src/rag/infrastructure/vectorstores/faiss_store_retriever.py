@@ -36,16 +36,35 @@ class FaissRetriever(Retriever):
         if emb is None:
             raise RuntimeError("Embedding failed in FaissRetriever")
 
-        ids, _ = self.store.search(emb, k=k)
+        ids, distances = self.store.search(emb, k=k)
+        chunks_iter = iter(self.store.get_chunks(ids))
+        sources_iter = iter(self.store.get_sources(ids))
 
-        chunks = self.store.get_chunks(ids)
+        results: List[dict] = []
+        for chunk_id, distance in zip(ids, distances):
+            if chunk_id < 0:
+                continue
 
-        sources = self.store.get_sources(ids)
+            chunk = next(chunks_iter, None)
+            source = next(sources_iter, None)
+            if chunk is None or source is None:
+                break
 
-        results = [
-            {"content": chunk, "source": src}
-            for chunk, src in zip(chunks, sources)
-        ]
+            score = None
+            if distance is not None:
+                score = 1.0 / (1.0 + float(distance)) if distance >= 0 else 0.0
+
+            results.append(
+                {
+                    "chunk_id": chunk_id,
+                    "score_retriever": score,
+                    "distance": float(distance)
+                    if distance is not None
+                    else None,
+                    "content": chunk,
+                    "source": source,
+                }
+            )
 
         return results
 
