@@ -71,88 +71,52 @@ uv run streamlit run src/rag/adapters/ui/app.py
 
 ```md
 .
-├── data/
-│   ├── ccontrolled_documentation/
-│   ├── clean_md_database/
-│   └── indexes/
-│       ├── all_chunk_sources.json
-│       ├── all_chunks.json
-│       ├── all_chunks.pkl
-│       └── faiss_index.idx
-├── src
-│   └── rag
-│       ├── adapters                        # Adapters layer (CLI, UI, etc.)
-│       │   ├── cli                         # Command-line tools (indexing, evaluation)
+├── data/                         # Source documents, DB dumps, indexes
+│   ├── clean_md_database/        # Normalized Markdown knowledge base
+│   ├── controlled_documentation/ # Original controlled docs
+│   ├── db/                       # Analytics databases (DuckDB)
+│   │   └── rag.duckdb
+│   ├── eval/                     # Evaluation datasets and reports
+│   └── indexes/                  # Vector store artifacts + metadata
+│       ├── all_chunk_sources.json
+│       ├── all_chunks.pkl
+│       ├── chunker_version.txt
+│       └── faiss_index.idx
+├── logs/                        # Application, audit, and usage logs
+│   ├── app/
+│   ├── evaluations/
+│   ├── interactions/
+│   ├── rag_audit/
+│   │   └── rag_audit.jsonl
+│   ├── usages/
+├── src/
+│   └── rag/
+│       ├── adapters              # CLI + Streamlit entrypoints
+│       │   ├── cli/
 │       │   │   ├── evaluation_rag_answers.py
 │       │   │   └── indexation_documentation.py
-│       │   └── ui                          # Streamlit UI
-│       │       ├── app.py                  # Streamlit entry point
-│       │       ├── ui_pages/               # Application pages
-│       │       │   ├── chat.py             # Chat page
-│       │       │   └── settings.py         # Configuration/settings page
-│       │       ├── components/             # Reusable UI components
-│       │       │   ├── message.py
-│       │       │   ├── feedback.py
-│       │       │   └── sources.py
-│       │       ├── layout/                 # Layout utilities (sidebar, theme, etc.)
-│       │       │   ├── sidebar.py
-│       │       │   └── theme.py
-│       │       └── services/               # Services/factories used by the UI
-│       │           └── rag_chat.py
-│       ├── application                     # RAG system business logic
-│       │   ├── ports                       # Abstract interfaces between application and 
-│       │   │   ├── chunkers.py
-│       │   │   ├── converters.py
-│       │   │   ├── embedders.py
-│       │   │   ├── evaluation_storage.py
-│       │   │   ├── evaluator.py
-│       │   │   ├── indexer.py
-│       │   │   ├── llm.py
-│       │   │   ├── retriever.py
-│       │   │   ├── reranker.py
-│       │   │   └── vector_store_manager.py
-│       │   └── use_cases                   # Concrete orchestrations: indexing, chat, evaluation...
-│       │       ├── documents_indexer.py
-│       │       ├── intent_classifier.py
-│       │       ├── prompting.py
-│       │       ├── rag_chat.py
-│       │       └── rag_evaluation.py
-│       ├── infrastructure                  # Technical implementations
-│       │   ├── chunking                    # Document chunking
-│       │   │   └── chunkers.py
-│       │   ├── config                      # Configuration and environment management
-│       │   │   ├── config.py
-│       │   │   └── types.py
-│       │   ├── converters                  # File conversion (PDF, Markdown, etc.)
-│       │   │   ├── converters.py
-│       │   │   └── default_exporter.py
-│       │   ├── embedders                   # Embedding models
-│       │   │   ├── fake_embedder.py
-│       │   │   └── mistral_embedder.py
-│       │   ├── evaluation                  # RAG evaluation tools
-│       │   │   └── ragas_evaluator.py
-│       │   ├── llm                         # LLM clients (Mistral, LangChain)
-│       │   │   ├── langchain_mistral_client.py
-│       │   │   └── mistral_client.py
-│       │   ├── logging                     # Logging and instrumentation
-│       │   │   ├── interaction_logger.py   # Q/A + contexts -> JSONL
-│       │   │   └── logger.py               # App / usage / evaluation loggers
-│       │   ├── rerankers                   # Document reranking strategies
-│       │   │   ├── cross_encoder_reranker.py
-│       │   │   ├── keywords_overlap_scorer.py
-│       │   │   └── llm_reranker.py
-│       │   ├── storage                     # Storage for evaluation runs
-│       │   │   └── evaluation_run_store.py
-│       │   └── vectorstores                # Vector stores (FAISS, etc.)
-│       │       ├── faiss_store_manager.py
-│       │       ├── faiss_store_retriever.py
-│       │       └── faiss_store_writer.py
-│       └── utils
-│           └── utils.py
-├── logs/
-├── pyproject.toml
+│       │   └── ui/               # Streamlit UI modules
+│       │       ├── app.py
+│       │       ├── components/   # UI widgets (messages, feedback, sources)
+│       │       ├── layout/       # Sidebar, theme, etc.
+│       │       ├── services/     # Chat service wiring
+│       │       └── ui_pages/     # Chat + settings pages
+│       ├── application           # Core use cases + ports
+│       │   ├── ports/
+│       │   └── use_cases/
+│       ├── infrastructure        # Concrete adapters (LLM, retriever…)
+│       │   ├── chunking/
+│       │   ├── config/
+│       │   ├── embedders/
+│       │   ├── evaluation/
+│       │   ├── llm/
+│       │   ├── logging/
+│       │   ├── rerankers/
+│       │   └── vectorstores/
+│       └── utils/                # Shared helpers (logging builder, etc.)
+├── pyproject.toml                # Project dependencies & build config
 ├── README.md
-└── uv.lock
+└── uv.lock                       # Locked dependency versions (uv)
 ```
 
 ## Roadmap
