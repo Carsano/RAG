@@ -73,7 +73,7 @@ def _build_chat_service() -> RAGChatService:
     classifier = IntentClassifier(llm=llm)
     interaction_logger = InteractionLogger()
     audit_logger = RAGAuditLogger()
-
+    chunker_version = open("data/indexes/chunker_version.txt").read().strip()
     service = RAGChatService(
         llm=llm,
         retriever=retriever,
@@ -87,7 +87,7 @@ def _build_chat_service() -> RAGChatService:
             "embedder_version": cfg.embed_model,
             "retriever_version": retriever.__class__.__name__,
             "reranker_version": reranker.__class__.__name__,
-            "chunker_version": None,
+            "chunker_version": chunker_version,
         },
     )
 
