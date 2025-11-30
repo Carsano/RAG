@@ -159,3 +159,99 @@ MIT License. See `LICENSE` file for details.
 
 ## Vision
 FULL RAG is not just a retrieval system. It is an attempt to make human knowledge actionable and sovereign.
+
+
+## 3. JSON Structure (Full Audit Record)
+
+### A. Metadata
+- `request_id`
+- `timestamp`
+- `user_id`
+- `pipeline_version`
+- `components`:
+  - `llm_version`
+  - `embedder_version`
+  - `reranker_version`
+  - `retriever_version`
+  - `chunker_version`
+
+### B. User Input
+- `raw_question`
+- `input_parameters` (requested)
+
+### C. Effective Parameters
+- `effective_parameters` (actual)
+
+### D. Retrieval & Reranking
+- `retrieval`:
+  - `top_k_returned`
+  - `chunks`:  
+    - `chunk_id`
+    - `score_retriever`
+    - `content_snapshot`
+    - `source_path`
+- `rerank`:
+  - `chunks_after_rerank`
+  - `score_reranker`
+
+### E. LLM Generation
+- `prompt_final`
+- `llm_metadata`:
+  - `input_tokens`
+  - `output_tokens`
+  - `total_tokens`
+  - `latency_ms`
+- `raw_answer`
+- `clean_answer`
+
+### F. RAG Metrics
+- `faithfulness`
+- `answer_relevancy`
+- `context_precision`
+- `context_recall`
+
+### G. Integrity
+- `integrity_hash` (SHA-256)
+
+---
+
+## 4. Relational Tables (Analytics)
+
+### Table: request
+- request_id (PK)
+- timestamp  
+- user_id  
+- llm_version  
+- embedder_version  
+- reranker_version  
+- retriever_version  
+- chunker_version  
+- latency_retrieval_ms  
+- latency_rerank_ms  
+- latency_generation_ms  
+- total_latency_ms  
+- input_tokens  
+- output_tokens  
+- total_tokens  
+
+### Table: rag_metrics
+- request_id (FK)
+- faithfulness  
+- answer_relevancy  
+- context_precision  
+- context_recall  
+
+### Table: chunks_used
+- id  
+- request_id (FK)  
+- chunk_snapshot_text  
+- chunk_source_path  
+- retriever_score  
+- reranker_score  
+- was_selected  
+
+### Table: users
+- user_id (PK)
+- creation_date
+
+---
