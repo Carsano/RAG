@@ -1,18 +1,20 @@
 
-
 # FULL RAG — FROM KNOWLEDGE TO WISDOM
 
 ## Overview
+
 FULL RAG is a local, secure, and modular Retrieval-Augmented Generation system. It allows anyone to create a personal or organizational assistant capable of understanding and answering questions based on internal documentation — entirely offline.
 
 The project aims to transform scattered knowledge into structured wisdom. It is currently under **active development**.
 
 ## Core Philosophy
+
 > Knowledge is data. Wisdom is understanding.
 
 FULL RAG bridges the gap by enabling users to convert raw documents into meaningful, queryable insights.
 
 ## Key Features
+
 - 100% local processing — no cloud dependency
 - Markdown-based knowledge source (all documents are converted to `.md`)
 - FAISS vector indexing for efficient similarity search
@@ -20,11 +22,14 @@ FULL RAG bridges the gap by enabling users to convert raw documents into meaning
 - Modular design ready for Streamlit and Docker integration
 
 ## Quick Start
+
 ### Prerequisites
+
 - Python 3.10+
 - A valid Mistral API key
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/Carsano/RAG.git
@@ -35,29 +40,36 @@ uv sync
 ```
 
 ### Configuration
+
 1. Create a `.env` file at the root:
+
    ```bash
    MISTRAL_API_KEY=your_mistral_key_here
    ```
+
 2. Place your Markdown knowledge files in the `data/` folder.
 
 ### Usage
 
 #### 1. Index your documents (CLI)
+
 Run the indexer to embed documents and build the FAISS index:
+
 ```bash
 uv run python -m src.rag.adapters.cli.indexation_documentation
 ```
 
 #### 2. Start the assistant (Streamlit UI)
+
 Launch the Streamlit web app:
+
 ```bash
 uv run streamlit run src/rag/adapters/ui/app.py
 ```
 
-
 ## Project Structure
-```
+
+```md
 .
 ├── data/
 │   ├── ccontrolled_documentation/
@@ -144,26 +156,30 @@ uv run streamlit run src/rag/adapters/ui/app.py
 ```
 
 ## Roadmap
+
 - [x] Streamlit web interface for local querying
-- [ ] Database saving
+- [x] Database saving
 - [ ] Docker container for deployment
 - [ ] Tests
 - [ ] Incremental indexing
 - [ ] Plugin system for external models
 
 ## Security
+
 All data is processed locally. No information is sent to external servers. API keys are stored only in your local environment.
 
 ## License
+
 MIT License. See `LICENSE` file for details.
 
 ## Vision
+
 FULL RAG is not just a retrieval system. It is an attempt to make human knowledge actionable and sovereign.
 
-
-## 3. JSON Structure (Full Audit Record)
+## Database structure
 
 ### A. Metadata
+
 - `request_id`
 - `timestamp`
 - `user_id`
@@ -176,16 +192,19 @@ FULL RAG is not just a retrieval system. It is an attempt to make human knowledg
   - `chunker_version`
 
 ### B. User Input
+
 - `raw_question`
-- `input_parameters` (requested)
+- `input_parameters`
 
 ### C. Effective Parameters
-- `effective_parameters` (actual)
+
+- `effective_parameters`
 
 ### D. Retrieval & Reranking
+
 - `retrieval`:
   - `top_k_returned`
-  - `chunks`:  
+  - `chunks`:
     - `chunk_id`
     - `score_retriever`
     - `content_snapshot`
@@ -195,6 +214,7 @@ FULL RAG is not just a retrieval system. It is an attempt to make human knowledg
   - `score_reranker`
 
 ### E. LLM Generation
+
 - `prompt_final`
 - `llm_metadata`:
   - `input_tokens`
@@ -205,12 +225,14 @@ FULL RAG is not just a retrieval system. It is an attempt to make human knowledg
 - `clean_answer`
 
 ### F. RAG Metrics
+
 - `faithfulness`
 - `answer_relevancy`
 - `context_precision`
 - `context_recall`
 
 ### G. Integrity
+
 - `integrity_hash` (SHA-256)
 
 ---
@@ -218,39 +240,43 @@ FULL RAG is not just a retrieval system. It is an attempt to make human knowledg
 ## 4. Relational Tables (Analytics)
 
 ### Table: request
+
 - request_id (PK)
-- timestamp  
-- user_id  
-- llm_version  
-- embedder_version  
-- reranker_version  
-- retriever_version  
-- chunker_version  
-- latency_retrieval_ms  
-- latency_rerank_ms  
-- latency_generation_ms  
-- total_latency_ms  
-- input_tokens  
-- output_tokens  
-- total_tokens  
+- timestamp
+- user_id
+- llm_version
+- embedder_version
+- reranker_version
+- retriever_version
+- chunker_version
+- latency_retrieval_ms
+- latency_rerank_ms
+- latency_generation_ms
+- total_latency_ms
+- input_tokens
+- output_tokens
+- total_tokens
 
 ### Table: rag_metrics
+
 - request_id (FK)
-- faithfulness  
-- answer_relevancy  
-- context_precision  
-- context_recall  
+- faithfulness
+- answer_relevancy
+- context_precision
+- context_recall
 
 ### Table: chunks_used
-- id  
-- request_id (FK)  
-- chunk_snapshot_text  
-- chunk_source_path  
-- retriever_score  
-- reranker_score  
-- was_selected  
+
+- id
+- request_id (FK)
+- chunk_snapshot_text
+- chunk_source_path
+- retriever_score
+- reranker_score
+- was_selected
 
 ### Table: users
+
 - user_id (PK)
 - creation_date
 
