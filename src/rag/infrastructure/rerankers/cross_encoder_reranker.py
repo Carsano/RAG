@@ -1,3 +1,5 @@
+"""Cross-encoder-based reranker implementation."""
+
 from typing import List
 from sentence_transformers import CrossEncoder
 from src.rag.application.ports.reranker import RankedChunk, Reranker

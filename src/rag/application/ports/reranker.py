@@ -1,3 +1,5 @@
+"""Protocol definitions for reranking components."""
+
 from typing import List, Protocol
 
 

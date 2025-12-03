@@ -1,3 +1,5 @@
+"""Use case orchestration for offline RAG evaluation runs."""
+
 import json
 import time
 import os
