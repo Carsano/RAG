@@ -12,6 +12,10 @@ from src.rag.infrastructure.chunking.markdown_tag_chunker import (
 )
 
 
+#################################################
+# Unit tests: internal wiring and configuration #
+#################################################
+
 def test_split_uses_default_configuration(monkeypatch):
     """Ensure the chunker wires the default splitter configuration.
 
@@ -98,6 +102,10 @@ def test_split_delegates_to_markdown_splitter(monkeypatch):
     assert splitter.chunk_overlap == 20
     assert splitter.calls == [text]
 
+
+#############################################################
+# Integration tests: markdown splitter end-to-end behaviour #
+#############################################################
 
 def test_split_preserves_markdown_sections_with_chunk_size():
     """Ensure Markdown sections remain grouped end-to-end."""
