@@ -117,3 +117,21 @@ def test_split_preserves_markdown_sections_with_chunk_size():
     assert chunks[1].startswith("### Sub-subtitle")
     assert "Final note." in chunks[1]
 
+
+def test_split_contains_all_markdown_sections():
+    """Ensure every Markdown section appears in some chunk."""
+    chunker = MarkdownTagChunker(chunk_size=120, chunk_overlap=0)
+    text = (
+        "# Title\n\nIntro paragraph.\n\n"
+        "## Subtitle\n\nSecond paragraph.\n\n"
+        "### Sub-subtitle\n\nFinal note."
+    )
+
+    chunks = chunker.split(text)
+
+    def contains_section(header: str, body: str) -> bool:
+        return any(header in chunk and body in chunk for chunk in chunks)
+
+    assert contains_section("# Title", "Intro paragraph.")
+    assert contains_section("## Subtitle", "Second paragraph.")
+    assert contains_section("### Sub-subtitle", "Final note.")
