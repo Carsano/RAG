@@ -3,7 +3,6 @@
 Validates the integration between RecursiveChunker and
 RecursiveCharacterTextSplitter.
 """
-from __future__ import annotations
 
 from typing import List
 
@@ -113,5 +112,10 @@ def test_split_with_overlap_preserves_text_order():
     chunks = chunker.split(text)
 
     assert len(chunks) > 1
-    reconstructed = "".join(chunks)
-    assert text in reconstructed
+    cursor = 0
+    for chunk in chunks:
+        idx = text.find(chunk, cursor)
+        assert idx != -1
+        cursor = idx
+    assert "sentence_0" in chunks[0]
+    assert "sentence_7" in chunks[-1]
