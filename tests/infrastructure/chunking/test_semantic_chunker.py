@@ -68,3 +68,43 @@ def test_split_uses_default_token_configuration():
     assert call["target_tokens"] == 300
     assert call["min_tokens"] == 120
     assert call["max_tokens"] == 500
+
+
+###############################################
+# Integration tests: boundary model semantics #
+###############################################
+class FixedBoundaryModel(BoundaryModel):
+    """Boundary model double returning predefined segments."""
+
+    def __init__(self, segments: List[str]) -> None:
+        self._segments = segments
+
+    def segment(
+        self,
+        text: str,
+        target_tokens: int,
+        min_tokens: int,
+        max_tokens: int,
+    ) -> List[str]:
+        return self._segments
+
+
+def test_split_returns_boundary_model_segments():
+    """Ensure SemanticChunker returns the exact segments produced."""
+    segments = ["A chunk", "Another chunk", "Last chunk"]
+    model = FixedBoundaryModel(segments)
+    chunker = SemanticChunker(model)
+
+    chunks = chunker.split("ignored text")
+
+    assert chunks == segments
+
+
+def test_split_handles_empty_text():
+    """Ensure empty inputs result in empty chunk lists."""
+    model = FixedBoundaryModel([])
+    chunker = SemanticChunker(model)
+
+    chunks = chunker.split("")
+
+    assert chunks == []
