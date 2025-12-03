@@ -3,7 +3,7 @@
 Defines the contract for chat completion and text generation
 components.
 """
-from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import List, Protocol
 

@@ -1,3 +1,5 @@
+"""Simple keyword-overlap reranker used as a baseline."""
+
 from typing import List
 from src.rag.application.ports.reranker import Reranker, RankedChunk
 

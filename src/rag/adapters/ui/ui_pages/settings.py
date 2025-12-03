@@ -3,7 +3,6 @@
 Allows the user to tweak UI / chat behaviour.
 For now settings are kept in `st.session_state` only.
 """
-from __future__ import annotations
 
 from typing import Any, Dict
 

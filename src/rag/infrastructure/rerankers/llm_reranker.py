@@ -1,3 +1,5 @@
+"""LLM-driven reranker that scores chunks via prompting."""
+
 from typing import List
 
 from src.rag.application.ports.llm import LLM

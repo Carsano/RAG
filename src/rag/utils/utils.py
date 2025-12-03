@@ -1,7 +1,7 @@
 """
 Utility functions for the RAG project.
 """
-from __future__ import annotations
+
 import pathlib
 
 

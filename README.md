@@ -123,8 +123,8 @@ uv run streamlit run src/rag/adapters/ui/app.py
 
 - [x] Streamlit web interface for local querying
 - [x] Database saving
-- [ ] Docker container for deployment
 - [ ] Tests
+- [ ] Docker container for deployment
 - [ ] Analytics (Ragas, usage)
 - [ ] Incremental indexing
 - [ ] Plugin system for external models

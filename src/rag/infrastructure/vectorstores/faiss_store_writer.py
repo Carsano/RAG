@@ -3,7 +3,6 @@ Faiss vector index builder/writer.
 """
 
 
-from __future__ import annotations
 import numpy as np
 import faiss
 from typing import List

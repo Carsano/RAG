@@ -4,7 +4,7 @@ Intent classification service.
 Decides whether a user question should use RAG or plain chat. Uses an LLM
 to classify, with a keyword fallback if the LLM call fails.
 """
-from __future__ import annotations
+
 
 from src.rag.application.ports.llm import LLM
 

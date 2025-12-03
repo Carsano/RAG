@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Ports describing persistence of evaluation runs."""
 
 import pathlib
 from dataclasses import dataclass

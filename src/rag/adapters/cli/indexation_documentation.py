@@ -1,7 +1,6 @@
 """
 CLI for manuel indexing of documentation.
 """
-from __future__ import annotations
 
 from src.rag.application.use_cases.documents_indexer import DocumentsIndexer
 from src.rag.utils.utils import get_project_root

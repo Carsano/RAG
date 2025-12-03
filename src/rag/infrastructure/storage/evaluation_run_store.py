@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Filesystem-backed evaluation run storage utilities."""
 
 import json
 import pathlib
