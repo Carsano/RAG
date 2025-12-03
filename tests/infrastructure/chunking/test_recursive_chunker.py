@@ -90,9 +90,9 @@ def test_split_delegates_to_recursive_splitter(monkeypatch):
     assert splitter.calls == [text]
 
 
-############################################################
-# Integration tests: recursive splitter end-to-end behaviour
-############################################################
+##############################################################
+# Integration tests: recursive splitter end-to-end behaviour #
+##############################################################
 
 def test_split_returns_single_chunk_when_text_small():
     """Ensure small payloads stay in a single chunk."""
