@@ -14,7 +14,7 @@ from src.rag.application.ports.embedders import Embedder
 
 from src.rag.utils.utils import get_project_root
 
-from src.rag.infrastructure.chunking.chunkers import Chunker
+from src.rag.infrastructure.chunking.semantic_chunkers import Chunker
 from src.rag.infrastructure.chunking.markdown_tag_chunker import (
     MarkdownTagChunker
 )
