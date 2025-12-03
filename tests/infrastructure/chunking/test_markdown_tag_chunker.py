@@ -97,3 +97,23 @@ def test_split_delegates_to_markdown_splitter(monkeypatch):
     assert splitter.chunk_size == 120
     assert splitter.chunk_overlap == 20
     assert splitter.calls == [text]
+
+
+def test_split_preserves_markdown_sections_with_chunk_size():
+    """Ensure Markdown sections remain grouped end-to-end."""
+    chunker = MarkdownTagChunker(chunk_size=60, chunk_overlap=0)
+    text = (
+        "# Title\n\nIntro paragraph.\n\n"
+        "## Subtitle\n\nSecond paragraph.\n\n"
+        "### Sub-subtitle\n\nFinal note."
+    )
+
+    chunks = chunker.split(text)
+    assert len(chunks) >= 2
+    assert chunks[0].startswith("# Title")
+    assert "Intro paragraph." in chunks[0]
+    assert "## Subtitle" in chunks[0]
+    assert "Second paragraph." in chunks[0]
+    assert chunks[1].startswith("### Sub-subtitle")
+    assert "Final note." in chunks[1]
+
