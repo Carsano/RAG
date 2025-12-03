@@ -15,7 +15,9 @@ from src.rag.application.ports.embedders import Embedder
 from src.rag.utils.utils import get_project_root
 
 from src.rag.infrastructure.chunking.chunkers import Chunker
-from src.rag.infrastructure.chunking.chunkers import MarkdownTagChunker
+from src.rag.infrastructure.chunking.markdown_tag_chunker import (
+    MarkdownTagChunker
+)
 from src.rag.infrastructure.embedders.mistral_embedder import MistralEmbedder
 from src.rag.infrastructure.logging.logger import get_app_logger
 from src.rag.infrastructure.vectorstores.faiss_store_writer import (
