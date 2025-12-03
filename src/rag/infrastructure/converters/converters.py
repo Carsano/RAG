@@ -5,7 +5,6 @@ Converts heterogeneous document formats (PDF, DOCX, TXT, etc.) to
 normalized Markdown for downstream indexing. The design follows SOLID
 principles with small, replaceable components for OCR and page export.
 """
-from __future__ import annotations
 
 import logging
 import os

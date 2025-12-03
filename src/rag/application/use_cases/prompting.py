@@ -4,7 +4,6 @@ Prompting utilities.
 Provides helper functions for building system prompts and clamping
 conversation history.
 """
-from __future__ import annotations
 
 from typing import List
 

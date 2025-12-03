@@ -1,7 +1,6 @@
 """
-Chunking strategies for RAG indexing.
+Recursive Chunking for RAG indexing.
 """
-from __future__ import annotations
 
 from typing import List
 

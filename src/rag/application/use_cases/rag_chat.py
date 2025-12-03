@@ -4,7 +4,7 @@ RAG chat service.
 Provides utilities to manage chat interactions that use
 Retrieval-Augmented Generation (RAG).
 """
-from __future__ import annotations
+
 import json
 import os
 import time

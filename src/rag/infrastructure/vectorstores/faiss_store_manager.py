@@ -2,7 +2,7 @@
 Faiss vector store adapter.
 Implements the abstract vector store interface using Faiss.
 """
-from __future__ import annotations
+
 import os
 import json
 import pickle

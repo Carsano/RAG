@@ -1,4 +1,5 @@
 
+"""Utilities for building structured logs for the RAG pipeline."""
 
 import hashlib
 import json

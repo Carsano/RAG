@@ -5,7 +5,6 @@ This module provides a simple abstraction to generate embeddings from
 text. It includes a Protocol interface, a Mistral-based implementation,
 and a Fake implementation for tests.
 """
-from __future__ import annotations
 
 from typing import List, Optional, Protocol, Sequence
 Vector = List[float]

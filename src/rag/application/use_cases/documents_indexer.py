@@ -1,7 +1,6 @@
 """
 Use case for indexing Markdown documents into a vector store.
 """
-from __future__ import annotations
 
 import time
 import json

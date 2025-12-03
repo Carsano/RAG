@@ -3,7 +3,6 @@
 This module validates the wiring between MarkdownTagChunker and the
 MarkdownTextSplitter dependency.
 """
-from __future__ import annotations
 
 from typing import List
 
@@ -56,7 +55,6 @@ def test_split_delegates_to_markdown_splitter(monkeypatch):
     Args:
         monkeypatch: Pytest helper to override MarkdownTextSplitter.
     """
-    created_instances: list[DummySplitter] = []
 
     class DummySplitter:
         """Splitter that records configuration and incoming texts."""
@@ -69,6 +67,8 @@ def test_split_delegates_to_markdown_splitter(monkeypatch):
         def split_text(self, text: str) -> List[str]:
             self.calls.append(text)
             return [f"chunk::{text}"]
+
+    created_instances: list[DummySplitter] = []
 
     def factory(chunk_size: int, chunk_overlap: int) -> DummySplitter:
         """Factory that mimics MarkdownTextSplitter constructor.

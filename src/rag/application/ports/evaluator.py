@@ -1,7 +1,5 @@
 """EvaluatorPort: abstraction for evaluation backends."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, List, Protocol
 

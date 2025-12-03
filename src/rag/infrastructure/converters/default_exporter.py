@@ -2,7 +2,6 @@
 Default implementation of PageExporter using pdf2image.
 """
 
-from __future__ import annotations
 import logging
 import pathlib
 from typing import List, Optional
