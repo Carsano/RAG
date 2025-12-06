@@ -78,3 +78,49 @@ def test_document_converter_init_respects_injected_dependencies(
     assert dc.exporter is dummy_exporter
     assert dc._converter is None
     assert "No conversion capabilities detected" in caplog.text
+
+
+def test_convert_file_integration_replaces_image_placeholders(
+    monkeypatch, tmp_path
+):
+    """End-to-end style test ensuring pdf placeholders trigger asset export."""
+
+    class FakeDoc:
+        def export_to_markdown(self):
+            return "Intro\n<!-- image -->\nConclusion"
+
+    class FakeDocling:
+        def convert(self, *_):
+            return SimpleNamespace(document=FakeDoc())
+
+    monkeypatch.setattr(converters, "_DoclingConverter", FakeDocling)
+
+    saved_images = []
+
+    class FakeImage:
+        def __init__(self, label):
+            self.label = label
+
+        def save(self, path):
+            path.write_text(f"img:{self.label}")
+            saved_images.append(path)
+
+    monkeypatch.setattr(
+        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        lambda path: [FakeImage("page1")],
+    )
+
+    input_root = tmp_path / "inputs"
+    output_root = tmp_path / "outputs"
+    input_root.mkdir()
+    pdf_path = input_root / "doc.pdf"
+    pdf_path.write_bytes(b"%PDF placeholder")
+
+    dc = DocumentConverter(input_root, output_root, logger=logging.getLogger("test"))
+
+    md = dc.convert_file(pdf_path)
+
+    assert "![page 1](doc_assets/page_001.png)" in md
+    asset_path = output_root / "doc_assets" / "page_001.png"
+    assert asset_path.exists()
+    assert asset_path in saved_images
