@@ -18,7 +18,8 @@ def test_default_page_exporter_init_stores_logger():
 
 
 def test_asset_dir_for_uses_markdown_parent_and_stem(tmp_path):
-    """_asset_dir_for should append '<stem>_assets' under the markdown parent."""
+    """_asset_dir_for should append '<stem>_assets'
+    under the markdown parent."""
     exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
     md_out_path = tmp_path / "notes" / "meeting.md"
 
@@ -71,12 +72,13 @@ def test_export_pages_returns_empty_when_pdf2image_missing(
 def test_export_pages_returns_empty_when_render_provides_no_pages(
     monkeypatch, tmp_path
 ):
-    """When _render_pdf returns nothing the exporter should not attempt to save."""
+    """When _render_pdf returns nothing the exporter should
+    not attempt to save."""
 
     def fake_render(self, _pdf_path):
         return []
 
-    def fake_save(self, pages, asset_dir):  # pragma: no cover - should not run.
+    def fake_save(self, pages, asset_dir):
         raise AssertionError("save should not be called when no pages")
 
     monkeypatch.setattr(
@@ -93,6 +95,41 @@ def test_export_pages_returns_empty_when_render_provides_no_pages(
 
     assert result == []
     assert (tmp_path / "notes" / "meeting_assets").exists()
+
+
+def test_export_pages_creates_assets_and_returns_saved_paths(
+    monkeypatch, tmp_path
+):
+    """Successful export should create the assets dir and return page paths."""
+    saved = []
+
+    class FakeImage:
+        def __init__(self, label: str):
+            self.label = label
+
+        def save(self, path):
+            path.write_text(f"png:{self.label}")
+            saved.append(path.name)
+
+    monkeypatch.setattr(
+        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        lambda path: [FakeImage("p1"), FakeImage("p2")],
+    )
+
+    exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
+    md_out = tmp_path / "exports" / "doc.md"
+    result = exporter.export_pages(pdf_path=tmp_path / "doc.pdf",
+                                   md_out_path=md_out)
+
+    assets_dir = tmp_path / "exports" / "doc_assets"
+    expected = [
+        assets_dir / "page_001.png",
+        assets_dir / "page_002.png",
+    ]
+    assert result == expected
+    assert saved == ["page_001.png", "page_002.png"]
+    for path in expected:
+        assert path.exists()
 
 
 def test_save_pages_persists_successful_images_and_logs_errors(
