@@ -68,6 +68,33 @@ def test_export_pages_returns_empty_when_pdf2image_missing(
     assert "pdf2image missing" in caplog.text
 
 
+def test_export_pages_returns_empty_when_render_provides_no_pages(
+    monkeypatch, tmp_path
+):
+    """When _render_pdf returns nothing the exporter should not attempt to save."""
+
+    def fake_render(self, _pdf_path):
+        return []
+
+    def fake_save(self, pages, asset_dir):  # pragma: no cover - should not run.
+        raise AssertionError("save should not be called when no pages")
+
+    monkeypatch.setattr(
+        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        lambda path: ["placeholder"],
+    )
+    monkeypatch.setattr(DefaultPageExporter, "_render_pdf", fake_render)
+    monkeypatch.setattr(DefaultPageExporter, "_save_pages", fake_save)
+
+    exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
+    md_out = tmp_path / "notes" / "meeting.md"
+    result = exporter.export_pages(pdf_path=tmp_path / "meeting.pdf",
+                                   md_out_path=md_out)
+
+    assert result == []
+    assert (tmp_path / "notes" / "meeting_assets").exists()
+
+
 def test_save_pages_persists_successful_images_and_logs_errors(
         tmp_path,
         caplog
