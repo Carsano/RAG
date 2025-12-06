@@ -3,7 +3,7 @@
 import logging
 import pathlib
 
-from src.rag.infrastructure.converters.default_exporter import (
+from src.rag.infrastructure.converters.default_page_exporter import (
     DefaultPageExporter,
 )
 
