@@ -1,6 +1,7 @@
 """Unit tests for ``src.rag.infrastructure.config.types``."""
 
 
+from typing import get_args
 
 from src.rag.infrastructure.config import types as config_types
 
