@@ -30,6 +30,10 @@ class DefaultPageExporter(PageExporter):
         """Return the directory that will host exported page images."""
         return md_out_path.parent / f"{md_out_path.stem}_assets"
 
+    def _render_pdf(self, pdf_path: pathlib.Path) -> List:
+        """Invoke pdf2image while handling errors uniformly."""
+        return _pdf2img(str(pdf_path))
+
     def export_pages(
         self, pdf_path: pathlib.Path, md_out_path: pathlib.Path
     ) -> List[pathlib.Path]:
