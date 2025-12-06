@@ -59,7 +59,8 @@ def test_export_pages_returns_empty_when_pdf2image_missing(
 ):
     """export_pages should warn and return [] if pdf2image is unavailable."""
     monkeypatch.setattr(
-        "src.rag.infrastructure.converters.default_page_exporter._pdf2img", None
+        "src.rag.infrastructure.converters.default_page_exporter._pdf2img",
+        None
     )
     exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
 
