@@ -32,9 +32,14 @@ class DefaultPageExporter(PageExporter):
 
     def _render_pdf(self, pdf_path: pathlib.Path) -> List:
         """Invoke pdf2image while handling errors uniformly."""
-        return _pdf2img(str(pdf_path))
+        try:
+            return _pdf2img(str(pdf_path))
+        except Exception as exc:
+            self.logger.error("pdf2image failed for %s: %s", pdf_path, exc)
+            return []
 
-    def _save_pages(self, pages: List, asset_dir: pathlib.Path) -> List[pathlib.Path]:
+    def _save_pages(self, pages: List,
+                    asset_dir: pathlib.Path) -> List[pathlib.Path]:
         """Persist each page image to disk and collect their paths."""
         out_paths: List[pathlib.Path] = []
         for i, img in enumerate(pages, start=1):
@@ -62,23 +67,12 @@ class DefaultPageExporter(PageExporter):
         if _pdf2img is None:
             self.logger.warning("Cannot export pages: pdf2image missing")
             return []
-        asset_dir = md_out_path.parent / f"{md_out_path.stem}_assets"
+        asset_dir = self._asset_dir_for(md_out_path)
         asset_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            pages = _pdf2img(str(pdf_path))
-        except Exception as exc:
-            self.logger.error("pdf2image failed for %s: %s", pdf_path, exc)
+        pages = self._render_pdf(pdf_path)
+        if not pages:
             return []
-        out_paths: List[pathlib.Path] = []
-        for i, img in enumerate(pages, start=1):
-            out_path = asset_dir / f"page_{i:03d}.png"
-            try:
-                img.save(out_path)
-                out_paths.append(out_path)
-            except Exception as exc:
-                self.logger.error("Saving page image failed: %s | %s",
-                                  out_path, exc)
-        return out_paths
+        return self._save_pages(pages, asset_dir)
 
 
 class DefaultOCRService:
