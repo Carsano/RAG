@@ -7,6 +7,10 @@ from src.rag.infrastructure.converters.default_exporter import (
     DefaultPageExporter,
 )
 
+###################################
+# Unit tests: DefaultPageExporter #
+###################################
+
 
 def test_default_page_exporter_init_stores_logger():
     """Constructor should store the provided logger for later use."""
@@ -171,3 +175,32 @@ def test_save_pages_persists_successful_images_and_logs_errors(
     assert result_paths == expected
     assert saved == ["page_001.png", "page_003.png"]
     assert "Saving page image failed" in caplog.text
+
+
+##########################################
+# Integration tests: DefaultPageExporter #
+##########################################
+
+def test_export_pages_handles_pdf2image_exception(
+        monkeypatch, tmp_path, caplog):
+    """Integration-style: ensure pdf2image errors are logged
+    and result is []."""
+
+    def _raise_error(path):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        _raise_error,
+    )
+
+    exporter = DefaultPageExporter(
+        logger=logging.getLogger("default-exporter"))
+    caplog.set_level(logging.ERROR)
+    md_out = tmp_path / "reports" / "session.md"
+
+    result = exporter.export_pages(pdf_path=tmp_path / "session.pdf",
+                                   md_out_path=md_out)
+
+    assert result == []
+    assert "pdf2image failed" in caplog.text
