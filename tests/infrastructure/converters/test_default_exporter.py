@@ -49,6 +49,25 @@ def test_render_pdf_invokes_pdf2image(monkeypatch):
     assert result == ["page1", "page2"]
 
 
+def test_export_pages_returns_empty_when_pdf2image_missing(
+    monkeypatch, tmp_path, caplog
+):
+    """export_pages should warn and return [] if pdf2image is unavailable."""
+    monkeypatch.setattr(
+        "src.rag.infrastructure.converters.default_exporter._pdf2img", None
+    )
+    exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
+
+    caplog.set_level(logging.WARNING)
+    result = exporter.export_pages(
+        pdf_path=tmp_path / "input.pdf",
+        md_out_path=tmp_path / "doc.md",
+    )
+
+    assert result == []
+    assert "pdf2image missing" in caplog.text
+
+
 def test_save_pages_persists_successful_images_and_logs_errors(
         tmp_path,
         caplog
