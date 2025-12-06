@@ -34,6 +34,19 @@ class DefaultPageExporter(PageExporter):
         """Invoke pdf2image while handling errors uniformly."""
         return _pdf2img(str(pdf_path))
 
+    def _save_pages(self, pages: List, asset_dir: pathlib.Path) -> List[pathlib.Path]:
+        """Persist each page image to disk and collect their paths."""
+        out_paths: List[pathlib.Path] = []
+        for i, img in enumerate(pages, start=1):
+            out_path = asset_dir / f"page_{i:03d}.png"
+            try:
+                img.save(out_path)
+                out_paths.append(out_path)
+            except Exception as exc:
+                self.logger.error("Saving page image failed: %s | %s",
+                                  out_path, exc)
+        return out_paths
+
     def export_pages(
         self, pdf_path: pathlib.Path, md_out_path: pathlib.Path
     ) -> List[pathlib.Path]:

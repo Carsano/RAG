@@ -47,3 +47,44 @@ def test_render_pdf_invokes_pdf2image(monkeypatch):
 
     assert called_with["path"] == str(pdf_path)
     assert result == ["page1", "page2"]
+
+
+def test_save_pages_persists_successful_images_and_logs_errors(
+        tmp_path,
+        caplog
+        ):
+    """_save_pages should write PNGs for successful pages
+    while logging failures."""
+    exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
+    asset_dir = tmp_path / "assets"
+    asset_dir.mkdir()
+
+    saved = []
+
+    class FakeImage:
+        def __init__(self, label: str, fail: bool = False):
+            self.label = label
+            self.fail = fail
+
+        def save(self, path):
+            if self.fail:
+                raise RuntimeError("disk full")
+            path.write_text(f"png:{self.label}")
+            saved.append(path.name)
+
+    pages = [
+        FakeImage("first"),
+        FakeImage("second", fail=True),
+        FakeImage("third"),
+    ]
+
+    caplog.set_level(logging.ERROR)
+    result_paths = exporter._save_pages(pages, asset_dir)
+
+    expected = [
+        asset_dir / "page_001.png",
+        asset_dir / "page_003.png",
+    ]
+    assert result_paths == expected
+    assert saved == ["page_001.png", "page_003.png"]
+    assert "Saving page image failed" in caplog.text
