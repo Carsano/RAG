@@ -1,7 +1,7 @@
 """Unit tests for ``src.rag.infrastructure.config.types``."""
 
 from dataclasses import is_dataclass
-from typing import get_args, get_type_hints
+from typing import get_args, get_type_hints, get_origin
 
 from src.rag.infrastructure.config import types as config_types
 
@@ -24,3 +24,7 @@ def test_chatmessage_is_dataclass_with_expected_annotations():
     assert msg.content == "Réponse."
 
 
+def test_messages_alias_targets_list_of_chatmessage():
+    """Messages alias simplifies passing ordered chat history."""
+    assert get_origin(config_types.Messages) is list
+    assert get_args(config_types.Messages) == (config_types.ChatMessage,)
