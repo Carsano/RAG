@@ -18,8 +18,10 @@ import re
 from src.rag.application.ports.converters import OCRService, PageExporter
 
 from src.rag.infrastructure.logging.logger import get_app_logger
-from src.rag.infrastructure.converters.default_exporter import (
-    DefaultPageExporter,
+from src.rag.infrastructure.converters.default_page_exporter import (
+    DefaultPageExporter
+)
+from src.rag.infrastructure.converters.default_ocr_exporter import (
     DefaultOCRService
 )
 
