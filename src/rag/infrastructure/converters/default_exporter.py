@@ -26,6 +26,10 @@ class DefaultPageExporter(PageExporter):
         """
         self.logger = logger
 
+    def _asset_dir_for(self, md_out_path: pathlib.Path) -> pathlib.Path:
+        """Return the directory that will host exported page images."""
+        return md_out_path.parent / f"{md_out_path.stem}_assets"
+
     def export_pages(
         self, pdf_path: pathlib.Path, md_out_path: pathlib.Path
     ) -> List[pathlib.Path]:
