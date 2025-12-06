@@ -43,7 +43,7 @@ def test_render_pdf_invokes_pdf2image(monkeypatch):
         return ["page1", "page2"]
 
     monkeypatch.setattr(
-        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        "src.rag.infrastructure.converters.default_page_exporter._pdf2img",
         fake_pdf2img,
     )
 
@@ -59,7 +59,7 @@ def test_export_pages_returns_empty_when_pdf2image_missing(
 ):
     """export_pages should warn and return [] if pdf2image is unavailable."""
     monkeypatch.setattr(
-        "src.rag.infrastructure.converters.default_exporter._pdf2img", None
+        "src.rag.infrastructure.converters.default_page_exporter._pdf2img", None
     )
     exporter = DefaultPageExporter(logger=logging.getLogger("unused"))
 
@@ -86,7 +86,7 @@ def test_export_pages_returns_empty_when_render_provides_no_pages(
         raise AssertionError("save should not be called when no pages")
 
     monkeypatch.setattr(
-        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        "src.rag.infrastructure.converters.default_page_exporter._pdf2img",
         lambda path: ["placeholder"],
     )
     monkeypatch.setattr(DefaultPageExporter, "_render_pdf", fake_render)
@@ -116,7 +116,7 @@ def test_export_pages_creates_assets_and_returns_saved_paths(
             saved.append(path.name)
 
     monkeypatch.setattr(
-        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        "src.rag.infrastructure.converters.default_page_exporter._pdf2img",
         lambda path: [FakeImage("p1"), FakeImage("p2")],
     )
 
@@ -190,7 +190,7 @@ def test_export_pages_handles_pdf2image_exception(
         raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "src.rag.infrastructure.converters.default_exporter._pdf2img",
+        "src.rag.infrastructure.converters.default_page_exporter._pdf2img",
         _raise_error,
     )
 
