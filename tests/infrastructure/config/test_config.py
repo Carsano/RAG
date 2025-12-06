@@ -5,9 +5,9 @@ import importlib
 from src.rag.infrastructure.config import config as config_module
 
 
-############################################################
-# Unit tests: AppConfig wiring and defaults
-############################################################
+#############################################
+# Unit tests: AppConfig wiring and defaults #
+#############################################
 def test_appconfig_load_provides_completion_defaults():
     """Ensure AppConfig.load returns the expected completion args."""
     cfg = config_module.AppConfig.load()

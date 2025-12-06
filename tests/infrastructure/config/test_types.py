@@ -5,6 +5,10 @@ from typing import get_args, get_type_hints, get_origin
 
 from src.rag.infrastructure.config import types as config_types
 
+#############################################
+# Unit tests                                #
+#############################################
+
 
 def test_role_literal_contains_expected_values():
     """Role literal should only allow the supported participants."""
