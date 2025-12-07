@@ -7,6 +7,10 @@ from src.rag.infrastructure.converters.default_ocr_exporter import (
     DefaultOCRService,
 )
 
+################################
+# Unit tests DefaultOCRService #
+################################
+
 
 def test_ocr_pdf_returns_none_when_pdf2image_fails(
         monkeypatch, tmp_path, caplog):
