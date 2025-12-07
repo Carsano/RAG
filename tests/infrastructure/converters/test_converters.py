@@ -275,7 +275,7 @@ def test_convert_file_delegates_to_docling_when_available(
         recorded["path"] = path
         return "converted"
 
-    converter._convert_with_docling = fake_convert  # type: ignore[assignment]
+    converter._convert_with_docling = fake_convert
     pdf_path = tmp_path / "doc.pdf"
 
     assert converter.convert_file(pdf_path) == "converted"
@@ -314,13 +314,13 @@ def test_convert_all_walks_tree_and_writes_outputs(
 
     saved = []
 
-    def fake_save(content, input_path, output_root):  # type: ignore[no-untyped-def]
+    def fake_save(content, input_path, output_root):
         out_path = output_root / input_path.relative_to(converter.input_root)
         saved.append((content, input_path))
         return out_path
 
-    converter.convert_file = fake_convert  # type: ignore[assignment]
-    converter.save_markdown = fake_save  # type: ignore[assignment]
+    converter.convert_file = fake_convert
+    converter.save_markdown = fake_save
 
     outputs = converter.convert_all()
 
