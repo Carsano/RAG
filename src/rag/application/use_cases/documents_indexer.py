@@ -199,6 +199,30 @@ class DocumentsIndexer:
             f"{len(self.embeddings_list)} embeddings"
         )
 
+    def _append_new_chunks(self, chunks: List[str],
+                           sources: List[str]) -> int:
+        """Embed and append new chunks without relying on resume state.
+
+        Args:
+            chunks: Chunk texts to embed.
+            sources: Source file paths matching each chunk.
+
+        Returns:
+            int: Number of embeddings successfully appended.
+        """
+        appended = 0
+        for chunk, source in zip(chunks, sources):
+            emb = self._embed_text(chunk)
+            if emb is None:
+                continue
+            self.embeddings_list.append(emb)
+            self.valid_chunks.append(chunk)
+            self.valid_sources.append(source)
+            appended += 1
+        if appended:
+            self._save_intermediate(i=len(self.valid_chunks) - 1)
+        return appended
+
     def _finalize_index(self) -> None:
         """
         Build FAISS index and write final artifacts to disk.
@@ -335,21 +359,59 @@ class DocumentsIndexer:
         self._embed_and_save(all_chunks, all_sources)
         self._finalize_index()
 
+    def index_files(self, files: List[pathlib.Path]) -> None:
+        """Index a specific list of Markdown files without full rebuild."""
+        if not files:
+            self.logger.info("No Markdown files provided for selective indexing.")
+            return
+
+        resolved = [
+            pathlib.Path(path).resolve()
+            for path in files
+            if pathlib.Path(path).exists()
+        ]
+        if not resolved:
+            self.logger.warning("No valid Markdown files found for indexing.")
+            return
+
+        chunks, sources = self._chunk_markdown_files(resolved)
+        if not chunks:
+            self.logger.warning("Selected files produced no chunks.")
+            return
+
+        self._load_resume_state()
+        appended = self._append_new_chunks(chunks, sources)
+        if not appended:
+            self.logger.warning("No embeddings generated for the selected files.")
+            return
+        self._finalize_index()
+
     def remove_file(self, file_path: pathlib.Path) -> int:
+        """Backward-compatible wrapper for removing a single file."""
+        return self.remove_files([file_path])
+
+    def remove_files(self, file_paths: List[pathlib.Path]) -> int:
         """
-        Remove all chunks originating from a given file, then rebuild index.
+        Remove chunks for the provided files and rebuild the index.
 
         Args:
-            file_path (pathlib.Path): Absolute or relative path to remove.
+            file_paths: Collection of absolute or relative paths to remove.
 
         Returns:
-            int: Number of removed chunks.
+            int: Total number of removed chunks.
         """
-        removed = self._filter_by_file(file_path)
-        if removed == 0:
+        valid_paths = [pathlib.Path(path).resolve() for path in file_paths]
+        if not valid_paths:
+            return 0
+
+        self._load_resume_state()
+        total_removed = 0
+        for path in valid_paths:
+            total_removed += self._filter_by_file(path)
+        if total_removed == 0:
             return 0
 
         self._rebuild_index_from_memory()
         self._save_intermediate(i=max(0, len(self.valid_chunks) - 1))
         self._finalize_index()
-        return removed
+        return total_removed

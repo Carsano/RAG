@@ -15,7 +15,11 @@ from pdf2image import convert_from_path as _pdf2img
 import pytesseract as _tesseract
 import re
 
-from src.rag.application.ports.converters import OCRService, PageExporter
+from src.rag.application.ports.converters import (
+    OCRService,
+    PageExporter,
+    DocumentConversionService,
+)
 
 from src.rag.infrastructure.logging.logger import get_app_logger
 from src.rag.infrastructure.converters.default_page_exporter import (
@@ -26,7 +30,7 @@ from src.rag.infrastructure.converters.default_ocr_exporter import (
 )
 
 
-class DocumentConverter():
+class DocumentConverter(DocumentConversionService):
     """Convert documents in a directory tree to Markdown.
 
     Uses docling for multi-format conversion when available and copies
@@ -261,6 +265,36 @@ class DocumentConverter():
         )
         return outputs
 
+    def convert_paths(self, paths: List[pathlib.Path]) -> List[pathlib.Path]:
+        """Convert only specific files located under input_root."""
+        outputs: List[pathlib.Path] = []
+        input_root_resolved = self.input_root.resolve()
+        for candidate in paths:
+            in_path = pathlib.Path(candidate)
+            try:
+                in_path.resolve().relative_to(input_root_resolved)
+            except ValueError:
+                self.logger.warning(
+                    f"Skipping path outside input root: {in_path}"
+                )
+                continue
+            if not in_path.exists():
+                self.logger.warning(f"Skipping missing file: {in_path}")
+                continue
+            if not in_path.is_file():
+                self.logger.warning(f"Skipping non-file path: {in_path}")
+                continue
+            content = self.convert_file(in_path)
+            if content is None:
+                continue
+            out_path = self.save_markdown(content, in_path, self.output_root)
+            outputs.append(out_path)
+        self.logger.info(
+            f"Selected conversion summary | "
+            f"total={len(paths)} | written={len(outputs)}"
+        )
+        return outputs
+
     def save_markdown(
         self,
         content: str,
@@ -286,16 +320,3 @@ class DocumentConverter():
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
         return output_path
-
-
-if __name__ == "__main__":
-    logger = get_app_logger()
-    converter = DocumentConverter(
-        input_root=pathlib.Path("./data/controlled_documentation"),
-        output_root=pathlib.Path("./data/clean_md_database"),
-    )
-    written = converter.convert_all()
-    out_dir = pathlib.Path("./data/clean_md_database").resolve()
-    logger.info(
-        f"Converted {len(written)} documents to Markdown → {out_dir}"
-    )

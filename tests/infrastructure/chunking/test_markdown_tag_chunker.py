@@ -103,6 +103,13 @@ def test_split_delegates_to_markdown_splitter(monkeypatch):
     assert splitter.calls == [text]
 
 
+def test_version_property_exposes_constant():
+    """Chunker exposes the VERSION constant via the version property."""
+    chunker = MarkdownTagChunker()
+    assert hasattr(chunker, "version")
+    assert chunker.version == MarkdownTagChunker.VERSION
+
+
 #############################################################
 # Integration tests: markdown splitter end-to-end behaviour #
 #############################################################

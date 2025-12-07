@@ -43,3 +43,16 @@ class PageExporter(Protocol):
           List[pathlib.Path]: Paths to the rendered page images.
         """
         ...
+
+
+class DocumentConversionService(Protocol):
+    """Document conversion contract for application use cases."""
+
+    def convert_all(self) -> List[pathlib.Path]:
+        """Convert every supported document
+        and return written Markdown paths."""
+        ...
+
+    def convert_paths(self, paths: List[pathlib.Path]) -> List[pathlib.Path]:
+        """Convert only the given files and return written Markdown paths."""
+        ...
