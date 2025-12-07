@@ -235,6 +235,34 @@ def test_convert_with_docling_returns_markdown_for_non_pdf(
     docling_mock.convert.assert_called_once_with(str(sample))
 
 
+def test_convert_with_docling_prefers_ocr_for_sparse_pdf(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Low-density PDF output should trigger OCR fallback usage."""
+    docling_mock = MagicMock()
+    doc_result = MagicMock()
+    doc_result.document.export_to_markdown.return_value = "sparse"
+    docling_mock.convert.return_value = doc_result
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_mock
+    )
+    ocr_service = MagicMock()
+    ocr_service.ocr_pdf.return_value = " ".join(["rich"] * 200)
+
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        ocr=ocr_service,
+    )
+    pdf_path = converter.input_root / "doc.pdf"
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    result = converter._convert_with_docling(pdf_path)
+
+    assert result == ocr_service.ocr_pdf.return_value
+    ocr_service.ocr_pdf.assert_called_once_with(pdf_path)
+
+
 def test_convert_with_docling_handles_pdf_placeholders(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
@@ -265,6 +293,74 @@ def test_convert_with_docling_handles_pdf_placeholders(
 
     assert "![page 1]" in result
     exporter.export_pages.assert_called_once()
+
+
+def test_convert_with_docling_keeps_docling_output_when_ocr_sparse(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """If OCR fallback is still sparse, keep Docling text and warn."""
+    docling_mock = MagicMock()
+    doc_result = MagicMock()
+    doc_result.document.export_to_markdown.return_value = "sparse"
+    docling_mock.convert.return_value = doc_result
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_mock
+    )
+    ocr_service = MagicMock()
+    ocr_service.ocr_pdf.return_value = "tiny text"
+    logger = MagicMock()
+
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        ocr=ocr_service,
+        logger=logger,
+    )
+    pdf_path = converter.input_root / "paper.pdf"
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    result = converter._convert_with_docling(pdf_path)
+
+    assert result == "sparse"
+    logger.warning.assert_any_call(
+        "OCR fallback yielded low text or failed for paper.pdf; keeping Docling output"
+    )
+
+
+def test_convert_with_docling_handles_docling_failure_with_ocr_images(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Docling exceptions should fallback to OCR and inject images."""
+
+    class ExplodingConverter:
+        def convert(self, _path):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: ExplodingConverter()
+    )
+    exporter = MagicMock()
+    img_path = tmp_path / "out" / "doc_assets" / "page.png"
+    exporter.export_pages.return_value = [img_path]
+    ocr_service = MagicMock()
+    ocr_service.ocr_pdf.return_value = "Body\n<!-- image -->\nTail"
+    logger = MagicMock()
+
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        exporter=exporter,
+        ocr=ocr_service,
+        logger=logger,
+    )
+    pdf_path = converter.input_root / "paper.pdf"
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    result = converter._convert_with_docling(pdf_path)
+
+    assert "![page 1]" in result
+    exporter.export_pages.assert_called_once()
+    logger.error.assert_called()
 
 
 def test_convert_file_reads_markdown_directly(
@@ -367,6 +463,25 @@ def test_convert_all_walks_tree_and_writes_outputs(
     assert len(outputs) == 2
     assert saved[0][0] == "copy"
     assert saved[1][0] == "converted"
+
+
+def test_convert_all_returns_empty_when_input_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Missing input root should log an error and return no outputs."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    logger = MagicMock()
+    missing_root = tmp_path / "nope"
+    converter = converters_mod.DocumentConverter(
+        input_root=missing_root,
+        output_root=tmp_path / "out",
+        logger=logger,
+    )
+
+    outputs = converter.convert_all()
+
+    assert outputs == []
+    logger.error.assert_any_call(f"Input directory not found: {missing_root}")
 
 
 def test_save_markdown_writes_content_and_structure(
