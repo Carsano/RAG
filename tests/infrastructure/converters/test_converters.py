@@ -2,6 +2,7 @@
 Unit tests for DocumentConverter initialization behaviour.
 """
 
+import pathlib
 from unittest.mock import MagicMock
 
 import pytest
@@ -124,3 +125,228 @@ def test_replace_image_placeholders_inserts_links(
 
     assert "![page 1](doc_assets/page_001.png)" in replaced
     assert "![page 2](doc_assets/page_002.png)" in replaced
+
+
+def test_planned_md_path_preserves_relative_structure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """_planned_md_path should mirror input tree under output root."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+
+    nested_input = converter.input_root / "guides" / "intro.pdf"
+    planned = converter._planned_md_path(nested_input)
+
+    expected = converter.output_root / "guides" / "intro.md"
+    assert planned == expected
+
+
+def test_convert_with_docling_returns_markdown_for_non_pdf(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Happy-path: docling result is returned for non-PDF files."""
+    docling_mock = MagicMock()
+    doc_result = MagicMock()
+    doc_result.document.export_to_markdown.return_value = "Converted text"
+    docling_mock.convert.return_value = doc_result
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_mock
+    )
+
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+    sample = tmp_path / "doc.txt"
+
+    result = converter._convert_with_docling(sample)
+
+    assert result == "Converted text"
+    docling_mock.convert.assert_called_once_with(str(sample))
+
+
+def test_convert_with_docling_handles_pdf_placeholders(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """When Docling emits placeholders, exporter output should be injected."""
+    docling_mock = MagicMock()
+    doc_result = MagicMock()
+    dense_segment = " ".join(["content"] * 200)
+    doc_result.document.export_to_markdown.return_value = (
+        f"{dense_segment}\n<!-- image -->\n{dense_segment}"
+    )
+    docling_mock.convert.return_value = doc_result
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_mock
+    )
+
+    exporter = MagicMock()
+    img_path = tmp_path / "out" / "asset.png"
+    exporter.export_pages.return_value = [img_path]
+
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        exporter=exporter,
+    )
+    sample = tmp_path / "doc.pdf"
+
+    result = converter._convert_with_docling(sample)
+
+    assert "![page 1]" in result
+    exporter.export_pages.assert_called_once()
+
+
+def test_convert_with_docling_uses_ocr_on_exception(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Docling errors should fall back to OCR for PDFs."""
+    docling_mock = MagicMock()
+    docling_mock.convert.side_effect = RuntimeError("boom")
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_mock
+    )
+    ocr_mock = MagicMock(return_value="ocr content")
+    exporter = MagicMock()
+    exporter.export_pages.return_value = []
+
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        ocr=ocr_mock,
+        exporter=exporter,
+    )
+    sample = tmp_path / "doc.pdf"
+
+    result = converter._convert_with_docling(sample)
+
+    assert result == "ocr content"
+    ocr_mock.ocr_pdf.assert_called_once_with(sample)
+
+
+def test_convert_file_reads_markdown_directly(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Existing Markdown files should be read without conversion."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+    md_file = tmp_path / "note.md"
+    md_file.write_text("hello", encoding="utf-8")
+
+    assert converter.convert_file(md_file) == "hello"
+
+
+def test_convert_file_skips_non_md_without_docling(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """When Docling is unavailable, non-Markdown files are skipped."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+    pdf_path = tmp_path / "doc.pdf"
+    pdf_path.write_text("binary", encoding="utf-8")
+
+    assert converter.convert_file(pdf_path) is None
+
+
+def test_convert_file_delegates_to_docling_when_available(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Non-Markdown files should be converted via Docling path."""
+    docling_mock = object()
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_mock
+    )
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+    recorded = {}
+
+    def fake_convert(path: pathlib.Path) -> str:
+        recorded["path"] = path
+        return "converted"
+
+    converter._convert_with_docling = fake_convert  # type: ignore[assignment]
+    pdf_path = tmp_path / "doc.pdf"
+
+    assert converter.convert_file(pdf_path) == "converted"
+    assert recorded["path"] == pdf_path
+
+
+def test_convert_all_walks_tree_and_writes_outputs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """convert_all should visit files, convert them, and collect outputs."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    input_root = tmp_path / "in"
+    input_root.mkdir()
+    nested = input_root / "sub"
+    nested.mkdir()
+    file_a = input_root / "a.md"
+    file_b = nested / "b.pdf"
+    file_c = nested / "c.pdf"
+    file_a.write_text("a", encoding="utf-8")
+    file_b.write_text("b", encoding="utf-8")
+    file_c.write_text("c", encoding="utf-8")
+
+    converter = converters_mod.DocumentConverter(
+        input_root=input_root,
+        output_root=tmp_path / "out",
+    )
+
+    responses = {
+        file_a: "copy",
+        file_b: "converted",
+        file_c: None,
+    }
+
+    def fake_convert(path: pathlib.Path) -> str | None:
+        return responses[path]
+
+    saved = []
+
+    def fake_save(content, input_path, output_root):  # type: ignore[no-untyped-def]
+        out_path = output_root / input_path.relative_to(converter.input_root)
+        saved.append((content, input_path))
+        return out_path
+
+    converter.convert_file = fake_convert  # type: ignore[assignment]
+    converter.save_markdown = fake_save  # type: ignore[assignment]
+
+    outputs = converter.convert_all()
+
+    assert len(outputs) == 2
+    assert saved[0][0] == "copy"
+    assert saved[1][0] == "converted"
+
+
+def test_save_markdown_writes_content_and_structure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """save_markdown should mirror relative paths under output root."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+    nested_input = converter.input_root / "docs" / "ref.pdf"
+    nested_input.parent.mkdir(parents=True, exist_ok=True)
+    nested_input.write_text("source", encoding="utf-8")
+
+    out_path = converter.save_markdown(
+        content="converted",
+        input_path=nested_input,
+        output_root=converter.output_root,
+    )
+
+    assert out_path == converter.output_root / "docs" / "ref.md"
+    assert out_path.read_text(encoding="utf-8") == "converted"
