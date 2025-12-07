@@ -3,7 +3,8 @@ Use case orchestrating documentation conversion to Markdown.
 """
 
 import logging
-from typing import Optional
+import pathlib
+from typing import List, Optional
 
 from src.rag.application.ports.converters import DocumentConversionService
 from src.rag.infrastructure.logging.logger import get_app_logger
@@ -32,3 +33,16 @@ class DocumentConversionUseCase:
         """
         self.converter = converter
         self.logger = logger or get_app_logger()
+
+    def run(self) -> List[pathlib.Path]:
+        """Convert every supported document and return generated paths."""
+        self.logger.info("Starting document conversion use case")
+        outputs = self.converter.convert_all()
+        self.logger.info("Document conversion completed | written=%d",
+                         len(outputs))
+        return outputs
+
+
+__all__ = [
+    "DocumentConversionUseCase"
+    ]
