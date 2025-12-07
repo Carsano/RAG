@@ -390,15 +390,31 @@ def _render_index_cleanup_section(
         "Supprimez des documents de l'index FAISS "
         "en les sélectionnant ci-dessous."
     )
-    indexed_paths = _load_manifest_paths(manifest_path)
+    indexed_paths, total_entries = _load_manifest_entries(manifest_path)
+    unique_total = len(indexed_paths)
+    faiss_root = markdown_root.parent / "indexes"
+    row1_col1, row1_col2, row1_col3 = st.columns(3)
+    row1_col1.metric("Documents indexés (manifest)", unique_total)
+    row1_col2.metric(
+        "Fichiers .idx présents",
+        _count_idx_files(faiss_root),
+        help="Compte uniquement les fichiers d'index FAISS (.idx).",
+    )
+    row1_col3.metric("Chunks enregistrés", total_entries)
+
+    row2_col1, row2_col2, row2_col3 = st.columns(3)
+    row2_col1.metric(
+        "Chunks moyens par document",
+        round(total_entries / unique_total, 2) if unique_total else 0,
+    )
+
+    row2_col3.metric(
+        "Dimension embeddings",
+        _read_embedding_dimension(faiss_root / "faiss_index.idx"),
+    )
     if not indexed_paths:
         st.info("Aucun document indexé trouvé dans le manifest.")
         return
-    indexed_total = len(indexed_paths)
-    duplicates = indexed_total - len(set(indexed_paths))
-    metric_col1, metric_col2 = st.columns(2)
-    metric_col1.metric("Documents indexés (manifest)", indexed_total)
-    metric_col2.metric("Entrées dupliquées", max(0, duplicates))
     options = [str(path) for path in indexed_paths]
     selected = st.multiselect(
         "Documents indexés",
@@ -433,7 +449,7 @@ def _index_selected_markdown(
     try:
         indexer = DocumentsIndexer(root=markdown_root)
         indexer.index_files(existing_paths)
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         return False, f"Indexation échouée: {exc}"
     return True, "Indexation terminée."
 
@@ -467,14 +483,16 @@ def _convert_sources_to_markdown(
     return True, f"Conversion terminée | fichiers convertis: {converted_count}"
 
 
-def _load_manifest_paths(manifest_path: pathlib.Path) -> list[pathlib.Path]:
-    """Load and normalize manifest entries from the FAISS manifest."""
+def _load_manifest_entries(
+    manifest_path: pathlib.Path,
+) -> tuple[list[pathlib.Path], int]:
+    """Load manifest entries along with total chunk count."""
     if not manifest_path.exists():
-        return []
+        return [], 0
     try:
         raw_entries = json.loads(manifest_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        return []
+        return [], 0
     normalized = []
     for entry in raw_entries:
         if not entry:
@@ -483,7 +501,8 @@ def _load_manifest_paths(manifest_path: pathlib.Path) -> list[pathlib.Path]:
         if not candidate.is_absolute():
             candidate = manifest_path.parent / candidate
         normalized.append(candidate.resolve())
-    return sorted(set(normalized))
+    unique = sorted(set(normalized))
+    return unique, len(normalized)
 
 
 def _remove_indexed_files(
@@ -501,6 +520,27 @@ def _remove_indexed_files(
     if total_removed == 0:
         return False, "Aucun vecteur supprimé pour les fichiers choisis."
     return True, f"Suppression terminée | chunks retirés: {total_removed}"
+
+
+def _count_idx_files(index_root: pathlib.Path) -> int:
+    """Count FAISS .idx files in the indexes folder."""
+    if not index_root.exists():
+        return 0
+    return sum(1 for path in index_root.iterdir()
+               if path.is_file() and path.suffix == ".idx")
+
+
+def _read_embedding_dimension(index_file: pathlib.Path) -> int:
+    """Read embedding dimension from the FAISS index, if available."""
+    if not index_file.exists():
+        return 0
+    try:
+        import faiss  # type: ignore
+
+        idx = faiss.read_index(str(index_file))
+        return int(getattr(idx, "d", 0))
+    except Exception:  # pragma: no cover - optional dependency
+        return 0
 
 
 def _rerun_app() -> None:
