@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import streamlit as st
 import plotly.graph_objects as go
 
+from src.rag.application.use_cases.documents_indexer import DocumentsIndexer
 from src.rag.application.use_cases.document_pipeline_comparator import (
     DocumentPipelineComparator,
     DocumentPipelineComparisonResult,
@@ -161,6 +162,7 @@ def render() -> None:
         _render_path_section(
             "Markdown absents de l'index", indexing.missing_from_index
         )
+        _render_indexing_selection(indexing.missing_from_index, markdown_root)
         _render_path_section(
             "Entrées index orphelines", indexing.orphaned_index_entries
         )
@@ -296,6 +298,54 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
         yaxis=dict(visible=False),
     )
     st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_indexing_selection(
+    missing_paths: list[pathlib.Path],
+    markdown_root: pathlib.Path,
+) -> None:
+    """Render controls for selecting Markdown files to index."""
+    if not missing_paths:
+        return
+
+    st.caption("Sélectionner les Markdown à indexer")
+    options = [str(path) for path in missing_paths]
+    selected = st.multiselect(
+        "Fichiers à ajouter à l'index",
+        options=options,
+        key="missing_index_multiselect",
+        help="Choisissez un ou plusieurs fichiers puis lancez l'indexation.",
+    )
+    if st.button(
+        "Indexer la sélection",
+        disabled=not selected,
+        key="index_selection_button",
+    ):
+        paths = [pathlib.Path(p) for p in selected]
+        with st.spinner("Indexation sélective en cours..."):
+            success, message = _index_selected_markdown(paths, markdown_root)
+        if success:
+            st.success(message)
+            st.experimental_rerun()
+        else:
+            st.error(message)
+
+
+def _index_selected_markdown(
+    paths: list[pathlib.Path],
+    markdown_root: pathlib.Path,
+) -> tuple[bool, str]:
+    """Run the selective indexing workflow for chosen Markdown files."""
+    existing_paths = [path for path in paths if path.exists()]
+    if not existing_paths:
+        return False, "Aucun fichier valide sélectionné."
+
+    try:
+        indexer = DocumentsIndexer(root=markdown_root)
+        indexer.index_files(existing_paths)
+    except Exception as exc:  # pragma: no cover - defensive
+        return False, f"Indexation échouée: {exc}"
+    return True, "Indexation terminée."
 
 
 __all__ = ["render"]

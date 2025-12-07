@@ -32,6 +32,11 @@ class MarkdownTagChunker(Chunker):
             chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
 
+    @property
+    def version(self) -> str:
+        """Return the chunker version identifier."""
+        return self.VERSION
+
     def split(self, text: str) -> List[str]:
         """Split the input Markdown text into chunks.
 
