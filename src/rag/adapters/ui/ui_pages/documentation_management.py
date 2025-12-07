@@ -54,7 +54,7 @@ SANKEY_NODE_CONFIGS: dict[str, SankeyNodeConfig] = {
         "Markdown non indexés", "#c31644", 1, 0.68
     ),
     "markdown_orphans": SankeyNodeConfig(
-        "Markdown orphelins", "#c31644", 0.56, 0.18
+        "Markdown orphelins", "#c31644", 0.75, 0.9
     ),
     "index_orphans": SankeyNodeConfig(
         "Entrées index orphelines", "#c31644", 0.95, 0.25
