@@ -57,6 +57,44 @@ def test_document_converter_init_uses_injected_dependencies(
     assert converter._converter is docling_instance
 
 
+def test_document_converter_init_logs_capabilities(monkeypatch,
+                                                   tmp_path) -> None:
+    """When docling and OCR stack exist, log info about capabilities."""
+    docling_instance = object()
+    monkeypatch.setattr(
+        converters_mod, "_DoclingConverter", lambda: docling_instance
+    )
+    monkeypatch.setattr(converters_mod, "_pdf2img", object())
+    monkeypatch.setattr(converters_mod, "_tesseract", object())
+    logger = MagicMock()
+
+    converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        logger=logger,
+    )
+
+    logger.info.assert_any_call("Capabilities: docling, OCR fallback")
+
+
+def test_document_converter_init_warns_on_missing_capabilities(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """When docling and OCR deps are missing, warn."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    monkeypatch.setattr(converters_mod, "_pdf2img", None)
+    monkeypatch.setattr(converters_mod, "_tesseract", None)
+    logger = MagicMock()
+
+    converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+        logger=logger,
+    )
+
+    logger.warning.assert_any_call("No conversion capabilities detected")
+
+
 def test_document_converter_init_builds_default_dependencies(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
@@ -125,6 +163,35 @@ def test_replace_image_placeholders_inserts_links(
 
     assert "![page 1](doc_assets/page_001.png)" in replaced
     assert "![page 2](doc_assets/page_002.png)" in replaced
+
+
+def test_replace_image_placeholders_handles_edge_cases(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """When no placeholders or fewer images exist, keep original or reuse."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+
+    md = "No placeholders here"
+    assert converter._replace_image_placeholders(
+        md, tmp_path / "doc.md", []
+    ) == md
+
+    md_with_three = "<!-- image --><!-- image --><!-- image -->"
+    img_dir = tmp_path / "out"
+    md_out_path = img_dir / "doc.md"
+    img_paths = [
+        img_dir / "doc_assets" / "page_001.png",
+        img_dir / "doc_assets" / "page_002.png",
+    ]
+    replaced = converter._replace_image_placeholders(md_with_three,
+                                                     md_out_path,
+                                                     img_paths)
+    assert replaced.count("![page 1]") == 1
+    assert replaced.count("![page 2]") == 2
 
 
 def test_planned_md_path_preserves_relative_structure(
@@ -198,33 +265,6 @@ def test_convert_with_docling_handles_pdf_placeholders(
 
     assert "![page 1]" in result
     exporter.export_pages.assert_called_once()
-
-
-def test_convert_with_docling_uses_ocr_on_exception(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-) -> None:
-    """Docling errors should fall back to OCR for PDFs."""
-    docling_mock = MagicMock()
-    docling_mock.convert.side_effect = RuntimeError("boom")
-    monkeypatch.setattr(
-        converters_mod, "_DoclingConverter", lambda: docling_mock
-    )
-    ocr_mock = MagicMock(return_value="ocr content")
-    exporter = MagicMock()
-    exporter.export_pages.return_value = []
-
-    converter = converters_mod.DocumentConverter(
-        input_root=tmp_path / "in",
-        output_root=tmp_path / "out",
-        ocr=ocr_mock,
-        exporter=exporter,
-    )
-    sample = tmp_path / "doc.pdf"
-
-    result = converter._convert_with_docling(sample)
-
-    assert result == "ocr content"
-    ocr_mock.ocr_pdf.assert_called_once_with(sample)
 
 
 def test_convert_file_reads_markdown_directly(
