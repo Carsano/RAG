@@ -5,6 +5,7 @@ Streamlit page for monitoring the documentation pipeline.
 from __future__ import annotations
 
 import pathlib
+from dataclasses import dataclass
 
 import streamlit as st
 import plotly.graph_objects as go
@@ -30,6 +31,53 @@ DOC_MANAGEMENT_STYLES = """
 }
 </style>
 """
+
+
+@dataclass(frozen=True)
+class SankeyNodeConfig:
+    """Declarative definition of a Sankey node's appearance and position."""
+
+    label: str
+    color: str
+    x: float
+    y: float
+
+
+SANKEY_NODE_CONFIGS: dict[str, SankeyNodeConfig] = {
+    "docs_sources": SankeyNodeConfig("Docs sources", "#4b5563", 0.02, 0.50),
+    "base_markdown": SankeyNodeConfig("Base Markdown", "#3da14b", 0.48, 0.48),
+    "index_faiss": SankeyNodeConfig("Index FAISS", "#3da14b", 1, 0.40),
+    "sources_not_converted": SankeyNodeConfig(
+        "Sources non converties", "#c31644", 0.50, 0.92
+    ),
+    "markdown_not_indexed": SankeyNodeConfig(
+        "Markdown non indexés", "#c31644", 1, 0.68
+    ),
+    "markdown_orphans": SankeyNodeConfig(
+        "Markdown orphelins", "#c31644", 0.56, 0.18
+    ),
+    "index_orphans": SankeyNodeConfig(
+        "Entrées index orphelines", "#c31644", 0.95, 0.25
+    ),
+}
+
+SANKEY_NODE_KEYS: list[str] = [
+    "docs_sources",
+    "base_markdown",
+    "index_faiss",
+    "sources_not_converted",
+    "markdown_not_indexed",
+    "markdown_orphans",
+    "index_orphans",
+]
+SANKEY_NODE_INDEX: dict[str, int] = {
+    key: idx for idx, key in enumerate(SANKEY_NODE_KEYS)
+}
+
+
+def _node_id(key: str) -> int:
+    """Return the index of a given node key."""
+    return SANKEY_NODE_INDEX[key]
 
 
 def _render_path_section(title: str, paths: list[pathlib.Path]) -> None:
@@ -133,23 +181,13 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
     indexed_docs = max(markdown_total - unindexed_markdown, 0)
 
     labels = [
-        "Docs sources",
-        "Base Markdown",
-        "Index FAISS",
-        "Sources non converties",
-        "Markdown orphelins",
-        "Markdown non indexés",
-        "Entrées index orphelines",
+        SANKEY_NODE_CONFIGS[key].label for key in SANKEY_NODE_KEYS
     ]
     node_colors = [
-        "#4b5563",
-        "#3da14b",
-        "#3da14b",
-        "#c31644",
-        "#c31644",
-        "#c31644",
-        "#c31644",
+        SANKEY_NODE_CONFIGS[key].color for key in SANKEY_NODE_KEYS
     ]
+    node_x = [SANKEY_NODE_CONFIGS[key].x for key in SANKEY_NODE_KEYS]
+    node_y = [SANKEY_NODE_CONFIGS[key].y for key in SANKEY_NODE_KEYS]
     sources: list[int] = []
     targets: list[int] = []
     values: list[int] = []
@@ -166,14 +204,42 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
     green_flow = "#a7d5ae"
     red_flow = "#e496ab"
 
-    _add_flow(0, 1, converted_from_sources, green_flow)
-    _add_flow(0, 3, missing_markdown, red_flow)
     _add_flow(
-        1, 4, orphan_markdown or markdown_extra, red_flow
+        _node_id("docs_sources"),
+        _node_id("base_markdown"),
+        converted_from_sources,
+        green_flow,
     )
-    _add_flow(1, 2, indexed_docs, green_flow)
-    _add_flow(1, 5, unindexed_markdown, red_flow)
-    _add_flow(2, 6, orphan_index_entries, red_flow)
+    _add_flow(
+        _node_id("docs_sources"),
+        _node_id("sources_not_converted"),
+        missing_markdown,
+        red_flow,
+    )
+    _add_flow(
+        _node_id("base_markdown"),
+        _node_id("markdown_orphans"),
+        orphan_markdown or markdown_extra,
+        red_flow,
+    )
+    _add_flow(
+        _node_id("base_markdown"),
+        _node_id("index_faiss"),
+        indexed_docs,
+        green_flow,
+    )
+    _add_flow(
+        _node_id("base_markdown"),
+        _node_id("markdown_not_indexed"),
+        unindexed_markdown,
+        red_flow,
+    )
+    _add_flow(
+        _node_id("index_faiss"),
+        _node_id("index_orphans"),
+        orphan_index_entries,
+        red_flow,
+    )
 
     if not values:
         st.info("Aucun flux disponible pour construire le diagramme.")
@@ -187,6 +253,8 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
             line=dict(color="rgba(0,0,0,0.4)", width=0.5),
             label=labels,
             color=node_colors,
+            x=node_x,
+            y=node_y,
         ),
         link=dict(
             source=sources,
@@ -224,6 +292,8 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
             borderwidth=1,
             font=dict(color="#0f172a"),
         ),
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
     )
     st.plotly_chart(fig, use_container_width=True)
 
