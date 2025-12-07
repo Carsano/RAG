@@ -52,8 +52,8 @@ def test_compare_detects_conversion_and_indexing_gaps(tmp_path) -> None:
 
     assert result.conversion.raw_total == 2
     assert result.conversion.markdown_total == 2
-    assert result.conversion.missing_markdown_files == [
-        (markdown_root / "policies" / "security.md").resolve()
+    assert result.conversion.missing_markdown_sources == [
+        raw_b.resolve()
     ]
     assert result.conversion.orphaned_markdown_files == [
         converted_extra.resolve()

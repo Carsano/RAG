@@ -55,7 +55,10 @@ def main() -> None:
     print(f"Conversion status: {conv_status}")
     print()
 
-    _print_paths("Missing Markdown outputs", conversion.missing_markdown_files)
+    _print_paths(
+        "Source files without Markdown output",
+        conversion.missing_markdown_sources,
+    )
     print()
     _print_paths(
         "Markdown files without a source",

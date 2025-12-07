@@ -26,7 +26,7 @@ def test_main_reports_comparison(monkeypatch, tmp_path, capsys) -> None:
     conversion_result = DocumentConversionComparisonResult(
         raw_total=3,
         markdown_total=2,
-        missing_markdown_files=[pathlib.Path("/missing/doc.md")],
+        missing_markdown_sources=[pathlib.Path("/missing/doc.md")],
         orphaned_markdown_files=[],
     )
     indexing_result = DocumentComparisonResult(

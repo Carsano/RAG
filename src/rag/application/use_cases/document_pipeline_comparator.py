@@ -26,20 +26,20 @@ class DocumentConversionComparisonResult:
     Attributes:
         raw_total: Number of raw files discovered under ``source_root``.
         markdown_total: Number of Markdown files under ``markdown_root``.
-        missing_markdown_files: Expected Markdown paths without a file.
+        missing_markdown_sources: Raw files lacking a Markdown conversion.
         orphaned_markdown_files: Markdown files without a source counterpart.
     """
 
     raw_total: int
     markdown_total: int
-    missing_markdown_files: list[pathlib.Path]
+    missing_markdown_sources: list[pathlib.Path]
     orphaned_markdown_files: list[pathlib.Path]
 
     @property
     def is_in_sync(self) -> bool:
         """Return True when raw documents and Markdown outputs match."""
         return (
-            not self.missing_markdown_files
+            not self.missing_markdown_sources
             and not self.orphaned_markdown_files
         )
 
@@ -111,16 +111,22 @@ class DocumentPipelineComparator:
         raw_docs = self._collect_raw_docs()
         markdown_docs = self._collect_markdown_docs()
 
-        expected_markdown_paths = {
-            self._expected_markdown_path(path) for path in raw_docs
+        expected_map = {
+            raw_path: self._expected_markdown_path(raw_path)
+            for raw_path in raw_docs
         }
-        missing_markdown = sorted(expected_markdown_paths - markdown_docs)
+        missing_markdown_sources = sorted(
+            raw_path
+            for raw_path, expected in expected_map.items()
+            if expected not in markdown_docs
+        )
+        expected_markdown_paths = set(expected_map.values())
         orphaned_markdown = sorted(markdown_docs - expected_markdown_paths)
 
         return DocumentConversionComparisonResult(
             raw_total=len(raw_docs),
             markdown_total=len(markdown_docs),
-            missing_markdown_files=missing_markdown,
+            missing_markdown_sources=missing_markdown_sources,
             orphaned_markdown_files=orphaned_markdown,
         )
 

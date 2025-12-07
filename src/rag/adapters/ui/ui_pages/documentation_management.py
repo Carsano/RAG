@@ -144,8 +144,8 @@ def render() -> None:
         col_b.metric("Markdown", conversion.markdown_total)
         col_c.metric("Statut", "OK" if conversion.is_in_sync else "À vérifier")
         _render_path_section(
-            "Fichiers sans conversion Markdown",
-            conversion.missing_markdown_files,
+            "Fichiers sources sans conversion Markdown",
+            conversion.missing_markdown_sources,
         )
         _render_path_section(
             "Markdown orphelins (pas de source)",
@@ -170,7 +170,7 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
     """Render a Sankey diagram describing document flows."""
     conversion = result.conversion
     indexing = result.indexing
-    missing_markdown = len(conversion.missing_markdown_files)
+    missing_markdown = len(conversion.missing_markdown_sources)
     orphan_markdown = len(conversion.orphaned_markdown_files)
     unindexed_markdown = len(indexing.missing_from_index)
     orphan_index_entries = len(indexing.orphaned_index_entries)
