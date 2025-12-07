@@ -71,3 +71,31 @@ def test_document_converter_init_builds_default_dependencies(
     assert isinstance(converter.exporter, DefaultPageExporter)
     assert converter.logger is not None
     assert converter._converter is None
+
+
+def test_text_density_low_handles_empty_and_sparse_text(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """_text_density_low should flag empty or sparse text samples."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+
+    assert converter._text_density_low("") is True
+    assert converter._text_density_low("word") is True
+
+
+def test_text_density_low_detects_dense_text(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """_text_density_low should accept content above thresholds."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+
+    dense_text = " ".join(["word"] * 200)
+    assert converter._text_density_low(dense_text) is False
