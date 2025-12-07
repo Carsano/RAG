@@ -99,3 +99,28 @@ def test_text_density_low_detects_dense_text(
 
     dense_text = " ".join(["word"] * 200)
     assert converter._text_density_low(dense_text) is False
+
+
+def test_replace_image_placeholders_inserts_links(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Placeholders should be replaced with relative markdown image links."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    converter = converters_mod.DocumentConverter(
+        input_root=tmp_path / "in",
+        output_root=tmp_path / "out",
+    )
+
+    md = "Intro\n<!-- image -->\nBetween\n<!-- image -->\nEnd"
+    img_dir = tmp_path / "out"
+    md_out_path = img_dir / "doc.md"
+    img_paths = [
+        img_dir / "doc_assets" / "page_001.png",
+        img_dir / "doc_assets" / "page_002.png",
+    ]
+
+    replaced = converter._replace_image_placeholders(md, md_out_path,
+                                                     img_paths)
+
+    assert "![page 1](doc_assets/page_001.png)" in replaced
+    assert "![page 2](doc_assets/page_002.png)" in replaced
