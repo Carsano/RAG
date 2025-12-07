@@ -265,6 +265,36 @@ class DocumentConverter(DocumentConversionService):
         )
         return outputs
 
+    def convert_paths(self, paths: List[pathlib.Path]) -> List[pathlib.Path]:
+        """Convert only specific files located under input_root."""
+        outputs: List[pathlib.Path] = []
+        input_root_resolved = self.input_root.resolve()
+        for candidate in paths:
+            in_path = pathlib.Path(candidate)
+            try:
+                in_path.resolve().relative_to(input_root_resolved)
+            except ValueError:
+                self.logger.warning(
+                    f"Skipping path outside input root: {in_path}"
+                )
+                continue
+            if not in_path.exists():
+                self.logger.warning(f"Skipping missing file: {in_path}")
+                continue
+            if not in_path.is_file():
+                self.logger.warning(f"Skipping non-file path: {in_path}")
+                continue
+            content = self.convert_file(in_path)
+            if content is None:
+                continue
+            out_path = self.save_markdown(content, in_path, self.output_root)
+            outputs.append(out_path)
+        self.logger.info(
+            f"Selected conversion summary | "
+            f"total={len(paths)} | written={len(outputs)}"
+        )
+        return outputs
+
     def save_markdown(
         self,
         content: str,

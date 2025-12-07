@@ -323,7 +323,8 @@ def test_convert_with_docling_keeps_docling_output_when_ocr_sparse(
 
     assert result == "sparse"
     logger.warning.assert_any_call(
-        "OCR fallback yielded low text or failed for paper.pdf; keeping Docling output"
+        "OCR fallback yielded low text or failed for paper.pdf; "
+        "keeping Docling output"
     )
 
 
@@ -482,6 +483,78 @@ def test_convert_all_returns_empty_when_input_missing(
 
     assert outputs == []
     logger.error.assert_any_call(f"Input directory not found: {missing_root}")
+
+
+def test_convert_paths_processes_selected_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """convert_paths should convert each existing file under input root."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    input_root = tmp_path / "in"
+    input_root.mkdir()
+    output_root = tmp_path / "out"
+    file_a = input_root / "a.md"
+    file_b = input_root / "b.pdf"
+    file_a.write_text("copy", encoding="utf-8")
+    file_b.write_text("binary", encoding="utf-8")
+
+    converter = converters_mod.DocumentConverter(
+        input_root=input_root,
+        output_root=output_root,
+    )
+    convert_calls = {}
+
+    def fake_convert(path: pathlib.Path) -> str | None:
+        convert_calls.setdefault("called", []).append(path)
+        if path == file_b:
+            return "converted"
+        return path.read_text(encoding="utf-8")
+
+    converter.convert_file = fake_convert  # type: ignore[assignment]
+
+    outputs = converter.convert_paths([file_a, file_b])
+
+    assert len(outputs) == 2
+    assert (output_root / "a.md").read_text(encoding="utf-8") == "copy"
+    assert (output_root / "b.md").read_text(encoding="utf-8") == "converted"
+    assert convert_calls["called"] == [file_a, file_b]
+
+
+def test_convert_paths_skips_invalid_and_external_paths(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Paths outside the input root or missing files should be ignored."""
+    monkeypatch.setattr(converters_mod, "_DoclingConverter", None)
+    logger = MagicMock()
+    input_root = tmp_path / "in"
+    input_root.mkdir()
+    converter = converters_mod.DocumentConverter(
+        input_root=input_root,
+        output_root=tmp_path / "out",
+        logger=logger,
+    )
+    existing = input_root / "doc.md"
+    existing.write_text("keep", encoding="utf-8")
+    converter.convert_file = lambda path: path.read_text(encoding="utf-8")
+
+    outside = tmp_path / "other" / "doc.md"
+    outside.parent.mkdir()
+    outside.write_text("nope", encoding="utf-8")
+
+    outputs = converter.convert_paths(
+        [outside, input_root / "missing.pdf", existing, input_root]
+    )
+
+    assert outputs == [converter.output_root / "doc.md"]
+    logger.warning.assert_any_call(
+        f"Skipping path outside input root: {outside}"
+    )
+    logger.warning.assert_any_call(
+        f"Skipping missing file: {input_root / 'missing.pdf'}"
+    )
+    logger.warning.assert_any_call(
+        f"Skipping non-file path: {input_root}"
+    )
 
 
 def test_save_markdown_writes_content_and_structure(

@@ -42,6 +42,15 @@ class DocumentConversionUseCase:
                          len(outputs))
         return outputs
 
+    def run_for_files(self, paths: List[pathlib.Path]) -> List[pathlib.Path]:
+        """Convert only the provided files."""
+        self.logger.info("Starting document conversion use case")
+        self.logger.info("Converting %d selected documents", len(paths))
+        outputs = self.converter.convert_paths(paths)
+        self.logger.info("Document conversion completed | written=%d",
+                         len(outputs))
+        return outputs
+
 
 __all__ = [
     "DocumentConversionUseCase"

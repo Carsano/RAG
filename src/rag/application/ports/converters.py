@@ -52,3 +52,7 @@ class DocumentConversionService(Protocol):
         """Convert every supported document
         and return written Markdown paths."""
         ...
+
+    def convert_paths(self, paths: List[pathlib.Path]) -> List[pathlib.Path]:
+        """Convert only the given files and return written Markdown paths."""
+        ...

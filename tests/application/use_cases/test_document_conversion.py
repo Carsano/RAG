@@ -46,3 +46,25 @@ def test_default_logger_is_resolved_from_factory(monkeypatch) -> None:
     use_case = DocumentConversionUseCase(converter=converter)
 
     assert use_case.logger is stub_logger
+
+
+def test_run_for_files_converts_specific_paths(monkeypatch) -> None:
+    """Providing explicit file paths should call converter.convert_paths."""
+    converter = MagicMock()
+    selection = [pathlib.Path("/tmp/doc1.pdf"), pathlib.Path("/tmp/doc2.pdf")]
+    outputs = [pathlib.Path("out/doc1.md"), pathlib.Path("out/doc2.md")]
+    converter.convert_paths.return_value = outputs
+    logger = MagicMock()
+    use_case = DocumentConversionUseCase(converter=converter, logger=logger)
+
+    result = use_case.run_for_files(selection)
+
+    assert result == outputs
+    converter.convert_paths.assert_called_once_with(selection)
+    logger.info.assert_has_calls(
+        [
+            call("Starting document conversion use case"),
+            call("Converting %d selected documents", len(selection)),
+            call("Document conversion completed | written=%d", len(outputs)),
+        ]
+    )
