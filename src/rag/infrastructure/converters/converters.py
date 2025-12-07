@@ -15,7 +15,11 @@ from pdf2image import convert_from_path as _pdf2img
 import pytesseract as _tesseract
 import re
 
-from src.rag.application.ports.converters import OCRService, PageExporter
+from src.rag.application.ports.converters import (
+    OCRService,
+    PageExporter,
+    DocumentConversionService,
+)
 
 from src.rag.infrastructure.logging.logger import get_app_logger
 from src.rag.infrastructure.converters.default_page_exporter import (
@@ -26,7 +30,7 @@ from src.rag.infrastructure.converters.default_ocr_exporter import (
 )
 
 
-class DocumentConverter():
+class DocumentConverter(DocumentConversionService):
     """Convert documents in a directory tree to Markdown.
 
     Uses docling for multi-format conversion when available and copies
@@ -286,16 +290,3 @@ class DocumentConverter():
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
         return output_path
-
-
-if __name__ == "__main__":
-    logger = get_app_logger()
-    converter = DocumentConverter(
-        input_root=pathlib.Path("./data/controlled_documentation"),
-        output_root=pathlib.Path("./data/clean_md_database"),
-    )
-    written = converter.convert_all()
-    out_dir = pathlib.Path("./data/clean_md_database").resolve()
-    logger.info(
-        f"Converted {len(written)} documents to Markdown → {out_dir}"
-    )
