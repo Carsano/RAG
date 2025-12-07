@@ -4,17 +4,18 @@ Streamlit page for monitoring the documentation pipeline.
 
 from __future__ import annotations
 
+import json
 import pathlib
 from dataclasses import dataclass
 
 import streamlit as st
 import plotly.graph_objects as go
 
-from src.rag.application.use_cases.documents_indexer import DocumentsIndexer
 from src.rag.application.use_cases.document_pipeline_comparator import (
     DocumentPipelineComparator,
     DocumentPipelineComparisonResult,
 )
+from src.rag.application.use_cases.documents_indexer import DocumentsIndexer
 from src.rag.utils.utils import get_project_root
 
 DOC_MANAGEMENT_STYLES = """
@@ -133,9 +134,12 @@ def render() -> None:
     st.subheader("Flux global")
     _render_sankey(result)
 
-    conversion_tab, indexing_tab = st.tabs(
-        ["Conversion — Sources vers Markdown",
-         "Indexation — Markdown vers Index"]
+    conversion_tab, indexing_tab, cleanup_tab = st.tabs(
+        [
+            "Conversion — Sources vers Markdown",
+            "Indexation — Markdown vers Index",
+            "Maintenance — Nettoyage de l'index",
+        ]
     )
 
     with conversion_tab:
@@ -166,6 +170,9 @@ def render() -> None:
         _render_path_section(
             "Entrées index orphelines", indexing.orphaned_index_entries
         )
+
+    with cleanup_tab:
+        _render_index_cleanup_section(manifest, markdown_root)
 
 
 def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
@@ -297,7 +304,7 @@ def _render_sankey(result: DocumentPipelineComparisonResult) -> None:
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_indexing_selection(
@@ -326,7 +333,41 @@ def _render_indexing_selection(
             success, message = _index_selected_markdown(paths, markdown_root)
         if success:
             st.success(message)
-            st.experimental_rerun()
+            _rerun_app()
+        else:
+            st.error(message)
+
+
+def _render_index_cleanup_section(
+    manifest_path: pathlib.Path, markdown_root: pathlib.Path
+) -> None:
+    """Render index cleanup tab with deletion controls."""
+    st.caption(
+        "Supprimez des documents de l'index FAISS "
+        "en les sélectionnant ci-dessous."
+    )
+    indexed_paths = _load_manifest_paths(manifest_path)
+    if not indexed_paths:
+        st.info("Aucun document indexé trouvé dans le manifest.")
+        return
+    options = [str(path) for path in indexed_paths]
+    selected = st.multiselect(
+        "Documents indexés",
+        options=options,
+        key="indexed_docs_multiselect",
+        help="Sélectionnez un ou plusieurs documents à retirer de l'index.",
+    )
+    if st.button(
+        "Supprimer de l'index",
+        disabled=not selected,
+        key="cleanup_index_button",
+    ):
+        paths = [pathlib.Path(p) for p in selected]
+        with st.spinner("Suppression des documents de l'index..."):
+            success, message = _remove_indexed_files(paths, markdown_root)
+        if success:
+            st.success(message)
+            _rerun_app()
         else:
             st.error(message)
 
@@ -346,6 +387,50 @@ def _index_selected_markdown(
     except Exception as exc:  # pragma: no cover - defensive
         return False, f"Indexation échouée: {exc}"
     return True, "Indexation terminée."
+
+
+def _load_manifest_paths(manifest_path: pathlib.Path) -> list[pathlib.Path]:
+    """Load and normalize manifest entries from the FAISS manifest."""
+    if not manifest_path.exists():
+        return []
+    try:
+        raw_entries = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    normalized = []
+    for entry in raw_entries:
+        if not entry:
+            continue
+        candidate = pathlib.Path(entry).expanduser()
+        if not candidate.is_absolute():
+            candidate = manifest_path.parent / candidate
+        normalized.append(candidate.resolve())
+    return sorted(set(normalized))
+
+
+def _remove_indexed_files(
+    paths: list[pathlib.Path],
+    markdown_root: pathlib.Path,
+) -> tuple[bool, str]:
+    """Remove selected files from the index."""
+    if not paths:
+        return False, "Aucun fichier sélectionné."
+    indexer = DocumentsIndexer(root=markdown_root)
+    total_removed = indexer.remove_files(paths)
+    if total_removed == 0:
+        return False, "Aucun vecteur supprimé pour les fichiers choisis."
+    return True, f"Suppression terminée | chunks retirés: {total_removed}"
+
+
+def _rerun_app() -> None:
+    """Trigger a Streamlit rerun compatible with legacy/new APIs."""
+    rerun = getattr(st, "rerun", None)
+    if rerun:
+        rerun()
+        return
+    experimental = getattr(st, "experimental_rerun", None)
+    if experimental:  # pragma: no cover - compatibility branch
+        experimental()
 
 
 __all__ = ["render"]

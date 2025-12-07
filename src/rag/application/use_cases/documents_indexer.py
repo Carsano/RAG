@@ -387,20 +387,31 @@ class DocumentsIndexer:
         self._finalize_index()
 
     def remove_file(self, file_path: pathlib.Path) -> int:
+        """Backward-compatible wrapper for removing a single file."""
+        return self.remove_files([file_path])
+
+    def remove_files(self, file_paths: List[pathlib.Path]) -> int:
         """
-        Remove all chunks originating from a given file, then rebuild index.
+        Remove chunks for the provided files and rebuild the index.
 
         Args:
-            file_path (pathlib.Path): Absolute or relative path to remove.
+            file_paths: Collection of absolute or relative paths to remove.
 
         Returns:
-            int: Number of removed chunks.
+            int: Total number of removed chunks.
         """
-        removed = self._filter_by_file(file_path)
-        if removed == 0:
+        valid_paths = [pathlib.Path(path).resolve() for path in file_paths]
+        if not valid_paths:
+            return 0
+
+        self._load_resume_state()
+        total_removed = 0
+        for path in valid_paths:
+            total_removed += self._filter_by_file(path)
+        if total_removed == 0:
             return 0
 
         self._rebuild_index_from_memory()
         self._save_intermediate(i=max(0, len(self.valid_chunks) - 1))
         self._finalize_index()
-        return removed
+        return total_removed

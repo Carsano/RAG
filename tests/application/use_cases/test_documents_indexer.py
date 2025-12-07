@@ -58,3 +58,44 @@ def test_index_files_appends_selected_markdown(tmp_path, monkeypatch) -> None:
     assert embedder.calls == ["Alpha content"]
     assert (indexes_dir / "faiss_index.idx").exists()
     assert (indexes_dir / "all_chunk_sources.json").exists()
+
+
+def test_remove_files_loads_state_and_updates_index(tmp_path) -> None:
+    """remove_files() should load previous state and drop selected files."""
+    markdown_root = tmp_path / "clean_md_database"
+    markdown_root.mkdir()
+    file_a = markdown_root / "alpha.md"
+    file_a.write_text("Alpha content", encoding="utf-8")
+
+    indexes_dir = tmp_path / "indexes"
+    indexes_dir.mkdir()
+
+    # First index the file to create stored state.
+    primary = DocumentsIndexer(
+        root=markdown_root,
+        chunker=StubChunker(),
+        embedder=StubEmbedder(),
+        tmp_chunks_path=indexes_dir / "tmp_chunks.pkl",
+        tmp_embeddings_path=indexes_dir / "tmp_embeddings.npy",
+        index_path=indexes_dir / "faiss_index.idx",
+        chunks_json_path=indexes_dir / "all_chunks.json",
+        chunks_pkl_path=indexes_dir / "all_chunks.pkl",
+    )
+    primary.index_files([file_a])
+
+    remover = DocumentsIndexer(
+        root=markdown_root,
+        chunker=StubChunker(),
+        embedder=StubEmbedder(),
+        tmp_chunks_path=indexes_dir / "tmp_chunks.pkl",
+        tmp_embeddings_path=indexes_dir / "tmp_embeddings.npy",
+        index_path=indexes_dir / "faiss_index.idx",
+        chunks_json_path=indexes_dir / "all_chunks.json",
+        chunks_pkl_path=indexes_dir / "all_chunks.pkl",
+    )
+
+    removed = remover.remove_files([file_a])
+
+    assert removed > 0
+    assert not remover.valid_sources
+    assert (indexes_dir / "faiss_index.idx").exists()
