@@ -8,14 +8,18 @@ import json
 import pathlib
 from dataclasses import dataclass
 
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
 
+from src.rag.application.use_cases.document_conversion import (
+    DocumentConversionUseCase,
+)
 from src.rag.application.use_cases.document_pipeline_comparator import (
     DocumentPipelineComparator,
     DocumentPipelineComparisonResult,
 )
 from src.rag.application.use_cases.documents_indexer import DocumentsIndexer
+from src.rag.infrastructure.converters.converters import DocumentConverter
 from src.rag.utils.utils import get_project_root
 
 DOC_MANAGEMENT_STYLES = """
@@ -151,6 +155,11 @@ def render() -> None:
         _render_path_section(
             "Fichiers sources sans conversion Markdown",
             conversion.missing_markdown_sources,
+        )
+        _render_conversion_selection(
+            conversion.missing_markdown_sources,
+            source_root,
+            markdown_root,
         )
         _render_path_section(
             "Markdown orphelins (pas de source)",
@@ -338,6 +347,41 @@ def _render_indexing_selection(
             st.error(message)
 
 
+def _render_conversion_selection(
+    missing_sources: list[pathlib.Path],
+    source_root: pathlib.Path,
+    markdown_root: pathlib.Path,
+) -> None:
+    """Render conversion actions for missing Markdown outputs."""
+    if not missing_sources:
+        return
+    st.caption("Convertir les sources sélectionnées en Markdown")
+    options = [str(path) for path in missing_sources]
+    selected = st.multiselect(
+        "Sélectionner des fichiers sources",
+        options=options,
+        key="convert_sources_multiselect",
+        help="Choisissez un ou plusieurs fichiers à convertir.",
+    )
+    if st.button(
+        "Convertir en Markdown",
+        disabled=not selected,
+        key="convert_sources_button",
+    ):
+        paths = [pathlib.Path(p) for p in selected]
+        with st.spinner("Conversion des documents sources..."):
+            success, message = _convert_sources_to_markdown(
+                paths,
+                source_root,
+                markdown_root,
+            )
+        if success:
+            st.success(message)
+            _rerun_app()
+        else:
+            st.error(message)
+
+
 def _render_index_cleanup_section(
     manifest_path: pathlib.Path, markdown_root: pathlib.Path
 ) -> None:
@@ -350,6 +394,11 @@ def _render_index_cleanup_section(
     if not indexed_paths:
         st.info("Aucun document indexé trouvé dans le manifest.")
         return
+    indexed_total = len(indexed_paths)
+    duplicates = indexed_total - len(set(indexed_paths))
+    metric_col1, metric_col2 = st.columns(2)
+    metric_col1.metric("Documents indexés (manifest)", indexed_total)
+    metric_col2.metric("Entrées dupliquées", max(0, duplicates))
     options = [str(path) for path in indexed_paths]
     selected = st.multiselect(
         "Documents indexés",
@@ -389,6 +438,35 @@ def _index_selected_markdown(
     return True, "Indexation terminée."
 
 
+def _convert_sources_to_markdown(
+    paths: list[pathlib.Path],
+    source_root: pathlib.Path,
+    markdown_root: pathlib.Path,
+) -> tuple[bool, str]:
+    """Convert selected source documents into Markdown outputs."""
+    existing_paths = [path for path in paths if path.exists()]
+    if not existing_paths:
+        return False, "Aucun fichier source valide sélectionné."
+    try:
+        converter = DocumentConverter(
+            input_root=source_root,
+            output_root=markdown_root,
+        )
+        use_case = DocumentConversionUseCase(converter=converter)
+        outputs = use_case.run_for_files(existing_paths)
+    except Exception as exc:
+        return False, f"Conversion échouée: {exc}"
+    converted_count = len(outputs)
+    total_requested = len(existing_paths)
+    if converted_count < total_requested:
+        return (
+            False,
+            "Certaines conversions ont échoué. "
+            "Consultez les logs ou contactez l'administrateur.",
+        )
+    return True, f"Conversion terminée | fichiers convertis: {converted_count}"
+
+
 def _load_manifest_paths(manifest_path: pathlib.Path) -> list[pathlib.Path]:
     """Load and normalize manifest entries from the FAISS manifest."""
     if not manifest_path.exists():
@@ -416,7 +494,10 @@ def _remove_indexed_files(
     if not paths:
         return False, "Aucun fichier sélectionné."
     indexer = DocumentsIndexer(root=markdown_root)
-    total_removed = indexer.remove_files(paths)
+    if hasattr(indexer, "remove_files"):
+        total_removed = indexer.remove_files(paths)
+    else:
+        total_removed = sum(indexer.remove_file(path) for path in paths)
     if total_removed == 0:
         return False, "Aucun vecteur supprimé pour les fichiers choisis."
     return True, f"Suppression terminée | chunks retirés: {total_removed}"
@@ -429,7 +510,7 @@ def _rerun_app() -> None:
         rerun()
         return
     experimental = getattr(st, "experimental_rerun", None)
-    if experimental:  # pragma: no cover - compatibility branch
+    if experimental:
         experimental()
 
 

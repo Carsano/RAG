@@ -38,17 +38,21 @@ class DocumentConversionUseCase:
         """Convert every supported document and return generated paths."""
         self.logger.info("Starting document conversion use case")
         outputs = self.converter.convert_all()
-        self.logger.info("Document conversion completed | written=%d",
-                         len(outputs))
+        self.logger.info(
+            f"Document conversion completed | written={len(outputs)}"
+        )
         return outputs
 
     def run_for_files(self, paths: List[pathlib.Path]) -> List[pathlib.Path]:
         """Convert only the provided files."""
         self.logger.info("Starting document conversion use case")
-        self.logger.info("Converting %d selected documents", len(paths))
+        self.logger.info(
+            f"Converting selected documents | count={len(paths)}"
+        )
         outputs = self.converter.convert_paths(paths)
-        self.logger.info("Document conversion completed | written=%d",
-                         len(outputs))
+        self.logger.info(
+            f"Document conversion completed | written={len(outputs)}"
+        )
         return outputs
 
 
