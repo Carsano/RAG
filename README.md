@@ -20,6 +20,8 @@ FULL RAG bridges the gap by enabling users to convert raw documents into meaning
 - FAISS vector indexing for efficient similarity search
 - Embeddings generated through Mistral AI
 - Modular design ready for Streamlit and Docker integration
+- End-to-end documentation pipeline with dedicated CLIs for conversion, indexing, and auditing
+- Streamlit dashboard to monitor pipeline health, trigger selective conversions, and clean indexes
 
 ## Quick Start
 
@@ -47,11 +49,19 @@ uv sync
    MISTRAL_API_KEY=your_mistral_key_here
    ```
 
-2. Place your Markdown knowledge files in the `data/` folder.
+2. Drop your source documents (PDF, DOCX, HTML, etc.) inside `data/controlled_documentation/`. The converter writes normalized Markdown into `data/clean_md_database/`, and every other component (indexing, Streamlit app) reads from that folder.
 
 ### Usage
 
-#### 1. Index your documents (CLI)
+#### 1. Convert your documents (CLI)
+
+Normalize every supported file into Markdown. The converter mirrors the folder hierarchy from `controlled_documentation/` to `clean_md_database/`.
+
+```bash
+uv run python -m src.rag.adapters.cli.convert_all_documentation
+```
+
+#### 2. Index your Markdown (CLI)
 
 Run the indexer to embed documents and build the FAISS index:
 
@@ -59,12 +69,30 @@ Run the indexer to embed documents and build the FAISS index:
 uv run python -m src.rag.adapters.cli.indexation_documentation
 ```
 
-#### 2. Start the assistant (Streamlit UI)
+#### 3. Compare the pipeline state (CLI)
+
+Audit the synchronization between the source directory, Markdown database, and FAISS manifest. The report lists every missing or orphaned file.
+
+```bash
+uv run python -m src.rag.adapters.cli.compare_documents
+```
+
+#### 4. Start the assistant (Streamlit UI)
 
 Launch the Streamlit web app:
 
 ```bash
 uv run streamlit run src/rag/adapters/ui/app.py
+```
+
+Inside the app, open the **Gestion de la Documentation** page to visualize conversion/indexing flows (Sankey diagram), convert a subset of files, selectively index Markdown documents, and delete outdated entries from the FAISS manifest.
+
+#### 5. (Optional) Evaluate generated answers (CLI)
+
+Run the offline evaluator on the logged chat dataset:
+
+```bash
+uv run python -m src.rag.adapters.cli.evaluation_rag_answers
 ```
 
 ## Project Structure
@@ -93,6 +121,8 @@ uv run streamlit run src/rag/adapters/ui/app.py
 │   └── rag/
 │       ├── adapters              # CLI + Streamlit entrypoints
 │       │   ├── cli/
+│       │   │   ├── compare_documents.py
+│       │   │   ├── convert_all_documentation.py
 │       │   │   ├── evaluation_rag_answers.py
 │       │   │   └── indexation_documentation.py
 │       │   └── ui/               # Streamlit UI modules
@@ -123,10 +153,9 @@ uv run streamlit run src/rag/adapters/ui/app.py
 
 - [x] Streamlit web interface for local querying
 - [x] Database saving
-- [ ] Tests
+- [ ] Documentation management
 - [ ] Docker container for deployment
 - [ ] Analytics (Ragas, usage)
-- [ ] Incremental indexing
 - [ ] Plugin system for external models
 
 ## Security
